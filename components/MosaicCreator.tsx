@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Wand2, Download, Image as ImageIcon, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from './Button';
 import { generateMosaic } from '../utils/mosaic';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
 interface MosaicCreatorProps {
   sourceFiles: File[];
@@ -60,24 +60,21 @@ export const MosaicCreator: React.FC<MosaicCreatorProps> = ({ sourceFiles }) => 
     try {
       const base64Data = mosaicUrl.split(',')[1];
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.0-flash',
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                inlineData: {
-                  mimeType: 'image/jpeg',
-                  data: base64Data
-                }
-              },
-              {
-                text: 'This is a photo mosaic composed of many smaller romantic couple photos. Analyze the visual composition and generate a short, deeply romantic, poetic title (max 6 words) for this artwork. Do not include quotes.'
+      const response: GenerateContentResponse = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                mimeType: 'image/jpeg',
+                data: base64Data
               }
-            ]
-          }
-        ]
+            },
+            {
+              text: 'This is a photo mosaic composed of many smaller romantic couple photos. Analyze the visual composition and generate a short, deeply romantic, poetic title (max 6 words) for this artwork. Do not include quotes.'
+            }
+          ]
+        }
       });
       if (response.text) {
         setAiTitle(response.text.trim());

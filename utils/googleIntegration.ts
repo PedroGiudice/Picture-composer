@@ -35,19 +35,20 @@ export const clearCredentials = () => {
 };
 
 /**
- * Loads the necessary Google API scripts (gapi)
+ * Loads the necessary Google API scripts (gapi and gsi)
  */
 export const loadGoogleApi = (onLoaded?: () => void) => {
   const gapi = (window as any).gapi;
   const google = (window as any).google;
 
-  if (!gapi || !google) {
+  // Ensure both the basic gapi object AND the google.accounts (from GSI) are available
+  if (!gapi || !google || !google.accounts) {
     // Retry if scripts aren't fully loaded yet
     setTimeout(() => loadGoogleApi(onLoaded), 500);
     return;
   }
 
-  // Load Picker API
+  // Load Picker API via gapi
   gapi.load('client:picker', async () => {
     pickerApiLoaded = true;
     gapiLoaded = true;
@@ -60,7 +61,10 @@ export const loadGoogleApi = (onLoaded?: () => void) => {
  */
 export const initializeTokenClient = (clientId: string) => {
   const google = (window as any).google;
-  if (!google) return;
+  if (!google || !google.accounts) {
+    console.warn("Google Identity Services not loaded yet.");
+    return;
+  }
 
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: clientId,
@@ -84,7 +88,7 @@ export const getAccessToken = (clientId: string): Promise<string> => {
     }
 
     if (!tokenClient) {
-      reject(new Error('Google Identity Services not initialized'));
+      reject(new Error('Google Identity Services not initialized. Please try again in a moment.'));
       return;
     }
 
@@ -111,7 +115,7 @@ export const openPicker = async (onPick: (files: File[]) => void) => {
 
   if (!pickerApiLoaded) {
     console.error("Picker API not loaded");
-    return;
+    throw new Error("Google Picker API is not ready. Please refresh.");
   }
 
   try {
