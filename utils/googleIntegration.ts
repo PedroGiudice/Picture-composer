@@ -1,0 +1,178 @@
+// Configuration for Google Integration
+// Now handled dynamically via user input stored in LocalStorage
+
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/photoslibrary.readonly';
+const STORAGE_KEY = 'google_api_credentials';
+
+interface GoogleCredentials {
+  clientId: string;
+  apiKey: string;
+}
+
+let tokenClient: any;
+let accessToken: string | null = null;
+let pickerApiLoaded = false;
+let gapiLoaded = false;
+
+export const saveCredentials = (clientId: string, apiKey: string) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ clientId, apiKey }));
+};
+
+export const getCredentials = (): GoogleCredentials | null => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored);
+  } catch (e) {
+    return null;
+  }
+};
+
+export const clearCredentials = () => {
+  localStorage.removeItem(STORAGE_KEY);
+  tokenClient = null;
+  accessToken = null;
+};
+
+/**
+ * Loads the necessary Google API scripts (gapi)
+ */
+export const loadGoogleApi = (onLoaded?: () => void) => {
+  const gapi = (window as any).gapi;
+  const google = (window as any).google;
+
+  if (!gapi || !google) {
+    // Retry if scripts aren't fully loaded yet
+    setTimeout(() => loadGoogleApi(onLoaded), 500);
+    return;
+  }
+
+  // Load Picker API
+  gapi.load('client:picker', async () => {
+    pickerApiLoaded = true;
+    gapiLoaded = true;
+    if (onLoaded) onLoaded();
+  });
+};
+
+/**
+ * Initialize the Token Client with a specific Client ID
+ */
+export const initializeTokenClient = (clientId: string) => {
+  const google = (window as any).google;
+  if (!google) return;
+
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: SCOPES,
+    callback: '', // Defined at request time
+  });
+};
+
+/**
+ * Request Access Token
+ */
+export const getAccessToken = (clientId: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    if (accessToken) {
+      resolve(accessToken);
+      return;
+    }
+
+    if (!tokenClient) {
+      initializeTokenClient(clientId);
+    }
+
+    if (!tokenClient) {
+      reject(new Error('Google Identity Services not initialized'));
+      return;
+    }
+
+    tokenClient.callback = (response: any) => {
+      if (response.error !== undefined) {
+        reject(response);
+      }
+      accessToken = response.access_token;
+      resolve(accessToken!);
+    };
+
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  });
+};
+
+/**
+ * Open the Google Picker
+ */
+export const openPicker = async (onPick: (files: File[]) => void) => {
+  const creds = getCredentials();
+  if (!creds) {
+    throw new Error("Missing Credentials");
+  }
+
+  if (!pickerApiLoaded) {
+    console.error("Picker API not loaded");
+    return;
+  }
+
+  try {
+    const token = await getAccessToken(creds.clientId);
+    const google = (window as any).google;
+
+    const pickerCallback = async (data: any) => {
+      if (data[google.picker.Response.ACTION] === google.picker.Action.PICKED) {
+        const documents = data[google.picker.Response.DOCUMENTS];
+        const files: File[] = [];
+
+        for (const doc of documents) {
+          const fileId = doc[google.picker.Document.ID];
+          const name = doc[google.picker.Document.NAME];
+          const mimeType = doc[google.picker.Document.MIME_TYPE];
+          
+          try {
+             // Construct download URL for Drive files
+             const driveUrl = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`;
+             
+             const response = await fetch(driveUrl, {
+               headers: {
+                 'Authorization': `Bearer ${token}`
+               }
+             });
+             
+             if (response.ok) {
+               const blob = await response.blob();
+               const file = new File([blob], name, { type: mimeType });
+               files.push(file);
+             } else {
+               console.error("Failed to download file", name);
+             }
+          } catch (err) {
+            console.error("Error processing file", name, err);
+          }
+        }
+        
+        onPick(files);
+      }
+    };
+
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES);
+    view.setMimeTypes("image/png,image/jpeg,image/jpg");
+
+    const photosView = new google.picker.View(google.picker.ViewId.PHOTOS);
+
+    const picker = new google.picker.PickerBuilder()
+      .enableFeature(google.picker.Feature.NAV_HIDDEN)
+      .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+      .setAppId(creds.clientId.split('-')[0])
+      .setOAuthToken(token)
+      .addView(view)
+      .addView(photosView)
+      .setDeveloperKey(creds.apiKey)
+      .setCallback(pickerCallback)
+      .build();
+
+    picker.setVisible(true);
+  } catch (err) {
+    console.error("Error opening picker:", err);
+    throw err;
+  }
+};
