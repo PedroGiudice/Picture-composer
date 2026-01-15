@@ -1,6 +1,8 @@
 export interface Question {
   id: string;
   text: string;
+  title?: string;
+  clinicalRationale?: string;
 }
 
 export interface Memory {

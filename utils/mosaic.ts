@@ -10,6 +10,12 @@ interface RGB {
   b: number;
 }
 
+interface SourceImage {
+  color: RGB;
+  img: HTMLImageElement;
+  usageCount: number;
+}
+
 const TILE_WIDTH = 30;
 const TILE_HEIGHT = 30;
 
@@ -55,9 +61,11 @@ export const generateMosaic = async (
 ): Promise<string> => {
   return new Promise(async (resolve, reject) => {
     try {
-      const sourceAnalysis: { color: RGB; img: HTMLImageElement }[] = [];
+      const sourceAnalysis: SourceImage[] = [];
       const objectUrls: string[] = [];
 
+      // Optimize: batch processing for source images could be added, but for now 
+      // we just ensure we track usage.
       for (let i = 0; i < sourceFiles.length; i++) {
         const url = URL.createObjectURL(sourceFiles[i]);
         objectUrls.push(url);
@@ -65,7 +73,7 @@ export const generateMosaic = async (
         img.src = url;
         await img.decode();
         const color = getAverageColor(img);
-        sourceAnalysis.push({ color, img });
+        sourceAnalysis.push({ color, img, usageCount: 0 });
         onProgress((i / sourceFiles.length) * 30);
       }
 
@@ -87,6 +95,8 @@ export const generateMosaic = async (
       ctx.drawImage(targetImg, 0, 0, canvas.width, canvas.height);
       const cols = Math.ceil(canvas.width / TILE_WIDTH);
       const rows = Math.ceil(canvas.height / TILE_HEIGHT);
+      
+      const USAGE_PENALTY = 20; // Increase distance by this amount per usage
       
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
@@ -113,17 +123,42 @@ export const generateMosaic = async (
             b: Math.floor(b / count)
           };
 
-          let minDist = Infinity;
+          // Find best match with usage penalty and randomness
           let bestMatch = sourceAnalysis[0];
+          let minScore = Infinity;
+
+          // Optimization: Check a subset if we have too many files, 
+          // or just iterate all since N is usually < 1000.
+          // For very large N, we might want a spatial index (e.g. k-d tree), 
+          // but strictly color-based linear scan is fast enough for < 2000 items in JS.
+          
+          // We select top K candidates to add randomness
+          const candidates = [];
+          
           for (const source of sourceAnalysis) {
-            const dist = colorDistance(targetColor, source.color);
-            if (dist < minDist) {
-              minDist = dist;
-              bestMatch = source;
-            }
+            const rawDist = colorDistance(targetColor, source.color);
+            // Score = Distance + (Usage * Penalty)
+            // This discourages reuse of the exact same image too often
+            const score = rawDist + (source.usageCount * USAGE_PENALTY);
+            
+            candidates.push({ source, score });
           }
+          
+          // Sort by score and pick from top 3
+          candidates.sort((a, b) => a.score - b.score);
+          
+          // Pick randomly from the top 3 (or fewer if not available)
+          const topK = Math.min(candidates.length, 3);
+          const selectedIndex = Math.floor(Math.random() * topK);
+          bestMatch = candidates[selectedIndex].source;
+          
+          // Increment usage
+          bestMatch.usageCount++;
+
           ctx.drawImage(bestMatch.img, x, y, TILE_WIDTH, TILE_HEIGHT);
         }
+        
+        // Progress update and yield to main thread to avoid freezing UI
         const currentProgress = 30 + ((row / rows) * 70);
         onProgress(currentProgress);
         if (row % 5 === 0) await new Promise(r => setTimeout(r, 0));

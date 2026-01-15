@@ -4,7 +4,7 @@ import { MemoryViewer } from './components/MemoryViewer';
 import { MosaicCreator } from './components/MosaicCreator';
 import { AppState } from './types';
 import { ROMANTIC_QUESTIONS } from './constants';
-import { Heart, Grid, Upload } from 'lucide-react';
+import { Heart, Grid, Upload, Play } from 'lucide-react';
 
 interface NavButtonProps {
   active: boolean;
@@ -16,10 +16,10 @@ interface NavButtonProps {
 const NavButton: React.FC<NavButtonProps> = ({ active, onClick, icon, label }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-colors ${
+    className={`flex items-center gap-2 px-4 py-2 text-xs font-bold tracking-widest uppercase transition-colors ${
       active 
-        ? 'text-rose-500 bg-rose-500/10 border-b-2 border-rose-500' 
-        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+        ? 'text-spicy-fire bg-warm-900/50 border-b-2 border-spicy-fire' 
+        : 'text-warm-400 hover:text-warm-200 hover:bg-warm-900'
     }`}
   >
     {icon}
@@ -55,11 +55,11 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-slate-50 flex flex-col">
-      <header className="w-full border-b border-slate-800 z-10 bg-slate-900/80 backdrop-blur-sm sticky top-0">
+    <div className="min-h-screen bg-warm-950 text-warm-50 flex flex-col font-monaspice">
+      <header className="w-full border-b border-warm-900 z-10 bg-warm-950/80 backdrop-blur-sm sticky top-0">
         <div className="px-6 md:px-12 py-4 flex justify-between items-center">
-          <div className="font-bold text-xl tracking-tighter text-white">
-            US<span className="text-rose-500">.</span>
+          <div className="font-bold text-xl tracking-tighter text-white flex items-center gap-2">
+            <span className="text-spicy-fire">DR.</span>ELENA
           </div>
           <nav className="hidden md:flex items-center gap-1">
             <NavButton 
@@ -71,8 +71,8 @@ const App: React.FC = () => {
             <NavButton 
               active={appState === AppState.VIEWING} 
               onClick={() => uploadedFiles.length > 0 ? setAppState(AppState.VIEWING) : setAppState(AppState.UPLOAD)}
-              icon={<Heart className="w-4 h-4" />}
-              label="Memory Deck"
+              icon={<Play className="w-4 h-4" />}
+              label="Start Session"
             />
             <NavButton 
               active={appState === AppState.MOSAIC_SETUP} 
@@ -81,34 +81,34 @@ const App: React.FC = () => {
               label="Mosaic Art"
             />
           </nav>
-          <div className="text-xs font-medium tracking-widest text-slate-500 uppercase md:block hidden">
-            Digital Memory Deck
+          <div className="text-[10px] font-bold tracking-widest text-warm-500 uppercase md:block hidden">
+            Clinical AI Sexologist
           </div>
         </div>
-        <div className="md:hidden flex border-t border-slate-800">
+        <div className="md:hidden flex border-t border-warm-900">
            <button 
              onClick={() => setAppState(AppState.UPLOAD)}
-             className={`flex-1 py-3 text-xs font-medium flex justify-center items-center gap-2 ${appState === AppState.UPLOAD ? 'text-rose-500 bg-slate-800' : 'text-slate-400'}`}
+             className={`flex-1 py-3 text-xs font-medium flex justify-center items-center gap-2 ${appState === AppState.UPLOAD ? 'text-spicy-fire bg-warm-900' : 'text-warm-400'}`}
            >
              <Upload className="w-3 h-3" /> Upload
            </button>
            <button 
              onClick={() => uploadedFiles.length > 0 ? setAppState(AppState.VIEWING) : alert('Upload photos first')}
-             className={`flex-1 py-3 text-xs font-medium flex justify-center items-center gap-2 ${appState === AppState.VIEWING ? 'text-rose-500 bg-slate-800' : 'text-slate-400'}`}
+             className={`flex-1 py-3 text-xs font-medium flex justify-center items-center gap-2 ${appState === AppState.VIEWING ? 'text-spicy-fire bg-warm-900' : 'text-warm-400'}`}
            >
-             <Heart className="w-3 h-3" /> Deck
+             <Play className="w-3 h-3" /> Session
            </button>
            <button 
              onClick={() => setAppState(AppState.MOSAIC_SETUP)}
-             className={`flex-1 py-3 text-xs font-medium flex justify-center items-center gap-2 ${appState === AppState.MOSAIC_SETUP ? 'text-rose-500 bg-slate-800' : 'text-slate-400'}`}
+             className={`flex-1 py-3 text-xs font-medium flex justify-center items-center gap-2 ${appState === AppState.MOSAIC_SETUP ? 'text-spicy-fire bg-warm-900' : 'text-warm-400'}`}
            >
              <Grid className="w-3 h-3" /> Mosaic
            </button>
         </div>
       </header>
       <main className="flex-1 flex flex-col items-center justify-center p-6 md:p-12 relative overflow-hidden">
-        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-rose-900/10 blur-[120px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-indigo-900/10 blur-[100px] rounded-full pointer-events-none" />
+        <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-warm-800/20 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute bottom-[-20%] left-[-10%] w-[500px] h-[500px] bg-spicy-fire/10 blur-[100px] rounded-full pointer-events-none" />
         <div className="w-full relative z-0">
           {appState === AppState.UPLOAD && (
             <PhotoUploader 
@@ -131,8 +131,8 @@ const App: React.FC = () => {
           )}
         </div>
       </main>
-      <footer className="w-full py-6 text-center text-slate-600 text-sm border-t border-slate-800/50">
-        <p>&copy; {new Date().getFullYear()} Connection Experience.</p>
+      <footer className="w-full py-6 text-center text-warm-600 text-xs border-t border-warm-900/50 uppercase tracking-wider">
+        <p>Therapeutic Application v3.0 // Dr. Elena AI</p>
       </footer>
     </div>
   );

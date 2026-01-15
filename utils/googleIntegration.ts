@@ -1,7 +1,7 @@
 // Configuration for Google Integration
 // Now handled dynamically via user input stored in LocalStorage
 
-const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/photoslibrary.readonly';
+const SCOPES = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/photospicker.mediaitems.readonly';
 const STORAGE_KEY = 'google_api_credentials';
 
 interface GoogleCredentials {
@@ -161,17 +161,19 @@ export const openPicker = async (onPick: (files: File[]) => void) => {
     const view = new google.picker.DocsView(google.picker.ViewId.DOCS_IMAGES);
     view.setMimeTypes("image/png,image/jpeg,image/jpg");
 
-    const photosView = new google.picker.View(google.picker.ViewId.PHOTOS);
+    // TEMP: Photos view disabled for testing - may have API restrictions
+    // const photosView = new google.picker.View(google.picker.ViewId.PHOTOS);
 
     const picker = new google.picker.PickerBuilder()
-      .enableFeature(google.picker.Feature.NAV_HIDDEN)
+      .setTitle('Selecione suas fotos')
+      .setLocale('pt-BR')
       .enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
       .setAppId(creds.clientId.split('-')[0])
       .setOAuthToken(token)
       .addView(view)
-      .addView(photosView)
       .setDeveloperKey(creds.apiKey)
       .setCallback(pickerCallback)
+      .setSize(900, 600)
       .build();
 
     picker.setVisible(true);

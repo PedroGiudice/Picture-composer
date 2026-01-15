@@ -5,7 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Couple's Memory Deck</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Fira+Code:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              'monaspice': ['"Space Mono"', '"Fira Code"', 'monospace'],
+              'sans': ['"Space Mono"', 'monospace'], // Force mono aesthetic everywhere
+            },
+            colors: {
+              warm: {
+                50: '#fff1f2',
+                100: '#ffe4e6',
+                200: '#fecdd3',
+                300: '#fda4af',
+                400: '#fb7185',
+                500: '#f43f5e',   // Base Rose
+                600: '#e11d48',   // Deep Rose
+                700: '#be123c',   // Wine
+                800: '#9f1239',   // Dark Wine
+                900: '#881337',   // Deepest Wine
+                950: '#4c0519',   // Background
+              },
+              spicy: {
+                orange: '#fdba74',
+                red: '#ef4444',
+                fire: '#ea580c',
+              }
+            }
+          }
+        }
+      }
+    </script>
     <script>
       // Global error handler
       window.addEventListener('error', function(event) {
@@ -14,10 +46,10 @@
         // Only show error UI if the app hasn't mounted yet (root is empty)
         if (root && (!root.innerHTML || root.innerHTML === '')) {
           root.innerHTML = `
-            <div style="padding: 2rem; color: #f87171; background: #0f172a; min-height: 100vh; font-family: sans-serif; text-align: center;">
+            <div style="padding: 2rem; color: #f87171; background: #2a0a12; min-height: 100vh; font-family: monospace; text-align: center;">
               <h1 style="font-size: 1.5rem; margin-bottom: 1rem;">Startup Error</h1>
-              <p style="color: #94a3b8;">${event.message}</p>
-              <pre style="text-align: left; background: #1e293b; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; overflow: auto; font-size: 0.8rem;">${event.error ? event.error.stack : 'No stack trace available'}</pre>
+              <p style="color: #fda4af;">${event.message}</p>
+              <pre style="text-align: left; background: #4c0519; padding: 1rem; margin-top: 1rem; border-radius: 0.5rem; overflow: auto; font-size: 0.8rem;">${event.error ? event.error.stack : 'No stack trace available'}</pre>
             </div>
           `;
         }
@@ -25,10 +57,7 @@
     </script>
     <style>
       body {
-        font-family: 'Inter', sans-serif;
-      }
-      h1, h2, h3, h4, h5, h6 {
-        font-family: 'Space Grotesk', sans-serif;
+        font-family: 'Space Mono', monospace;
       }
       .custom-scrollbar::-webkit-scrollbar {
         width: 4px;
@@ -37,16 +66,16 @@
         background: transparent;
       }
       .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #334155;
+        background: #881337;
       }
       .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-        background: #475569;
+        background: #be123c;
       }
     </style>
     <script async defer src="https://apis.google.com/js/api.js"></script>
     <script async defer src="https://accounts.google.com/gsi/client"></script>
   </head>
-  <body class="bg-slate-900 text-slate-50 antialiased selection:bg-rose-500 selection:text-white">
+  <body class="bg-warm-950 text-warm-50 antialiased selection:bg-spicy-fire selection:text-white">
     <div id="root"></div>
     <script type="module" src="./index.tsx"></script>
   </body>
