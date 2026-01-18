@@ -6,6 +6,7 @@ import { Button } from './Button';
 import { SomaticLoader } from './ui/SomaticLoader';
 import { HeatSlider } from './ui/HeatSlider';
 import { SomaticBackend, IntimacyResponse } from '../services/api';
+import { OllamaService } from '../services/ollama';
 
 interface MemoryViewerProps {
   files: File[];
@@ -35,17 +36,46 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
   const handleProcess = async () => {
     if (!photoUrl) return;
     setViewState('PROCESSING');
-    
-    // Artificial delay for dramatic effect + Backend call
+
     try {
-      // In a real app, we'd upload the file here or assume it's accessible
+      // Tenta Modal primeiro
       const data = await SomaticBackend.processSession(photoUrl, heatLevel);
-      setResult(data);
+
+      // Se retornou erro no campo, usa fallback
+      if (data.error) {
+        console.warn('Modal falhou, usando Ollama fallback');
+        const fallback = await OllamaService.generateFallbackChallenge(heatLevel);
+        setResult({
+          instruction_title_pt_br: fallback.title,
+          instruction_text_pt_br: fallback.instruction,
+          clinical_rationale_pt_br: fallback.rationale,
+          intensity_metric: heatLevel,
+          duration_sec: 120,
+          error: 'Usando Ollama local'
+        });
+      } else {
+        setResult(data);
+      }
       setViewState('REVEAL');
     } catch (e) {
-      console.error(e);
-      // Handle error visually?
-      setViewState('SETUP');
+      console.error('Modal error, trying Ollama:', e);
+
+      // Fallback para Ollama
+      try {
+        const fallback = await OllamaService.generateFallbackChallenge(heatLevel);
+        setResult({
+          instruction_title_pt_br: fallback.title,
+          instruction_text_pt_br: fallback.instruction,
+          clinical_rationale_pt_br: fallback.rationale,
+          intensity_metric: heatLevel,
+          duration_sec: 120,
+          error: 'Usando Ollama local'
+        });
+        setViewState('REVEAL');
+      } catch (ollamaError) {
+        console.error('Ollama also failed:', ollamaError);
+        setViewState('SETUP');
+      }
     }
   };
 
