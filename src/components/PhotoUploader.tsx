@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, X, Cloud, Loader2, Settings, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Upload, Image as ImageIcon, X, Cloud, Loader2, Settings, AlertCircle, FolderOpen } from 'lucide-react';
 import { Button } from './Button';
 import { loadGoogleApi, openPicker, getCredentials, saveCredentials, clearCredentials } from '../utils/googleIntegration';
+import { isTauri, listLocalPhotos, savePhotoLocally, getPhotoAsBase64, fileToBase64, getPhotosPath } from '../services/tauri';
 
 interface FilePreviewProps {
   file: File;
@@ -143,9 +144,9 @@ interface PhotoUploaderProps {
   onContinue: () => void;
 }
 
-export const PhotoUploader: React.FC<PhotoUploaderProps> = ({ 
-  files, 
-  onUpload, 
+export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
+  files,
+  onUpload,
   onClear,
   onRemove,
   onContinue
@@ -155,6 +156,46 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const [googleReady, setGoogleReady] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
   const [hasCreds, setHasCreds] = useState(false);
+  const [photosPath, setPhotosPath] = useState<string | null>(null);
+  const [isLoadingLocal, setIsLoadingLocal] = useState(false);
+
+  // Carregar fotos locais ao iniciar (apenas no Tauri)
+  useEffect(() => {
+    const loadLocalPhotos = async () => {
+      if (!isTauri()) return;
+
+      setIsLoadingLocal(true);
+      try {
+        const path = await getPhotosPath();
+        setPhotosPath(path);
+
+        const localPhotos = await listLocalPhotos();
+        if (localPhotos.length > 0) {
+          // Converter fotos locais para File objects
+          const loadedFiles: File[] = [];
+          for (const photo of localPhotos) {
+            const base64 = await getPhotoAsBase64(photo.name);
+            if (base64) {
+              const ext = photo.name.split('.').pop()?.toLowerCase() || 'jpg';
+              const mimeType = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+              const blob = await fetch(`data:${mimeType};base64,${base64}`).then(r => r.blob());
+              const file = new File([blob], photo.name, { type: mimeType });
+              loadedFiles.push(file);
+            }
+          }
+          if (loadedFiles.length > 0) {
+            onUpload(loadedFiles);
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao carregar fotos locais:', error);
+      } finally {
+        setIsLoadingLocal(false);
+      }
+    };
+
+    loadLocalPhotos();
+  }, []);
 
   useEffect(() => {
     loadGoogleApi(() => {
@@ -163,9 +204,22 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     setHasCreds(!!getCredentials());
   }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      onUpload(Array.from(e.target.files));
+      const newFiles = Array.from(e.target.files);
+      onUpload(newFiles);
+
+      // Salvar localmente no Tauri
+      if (isTauri()) {
+        for (const file of newFiles) {
+          try {
+            const base64 = await fileToBase64(file);
+            await savePhotoLocally(file.name, base64);
+          } catch (error) {
+            console.error('Erro ao salvar foto localmente:', error);
+          }
+        }
+      }
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -221,6 +275,18 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         <p className="text-slate-400 max-w-lg mx-auto">
           Selecione fotos especiais de vocês dois. Vamos usar essas imagens para gerar momentos de conexão.
         </p>
+        {photosPath && (
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+            <FolderOpen className="w-3 h-3" />
+            <span>Fotos salvas em: <code className="bg-slate-800 px-1 py-0.5 rounded">{photosPath}</code></span>
+          </div>
+        )}
+        {isLoadingLocal && (
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>Carregando fotos locais...</span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
