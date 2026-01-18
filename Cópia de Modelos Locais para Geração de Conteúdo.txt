@@ -1,0 +1,301 @@
+﻿Relatório de Implementação Técnica: Pipeline de IA Local 'Uncensored' Multimodal em Infraestrutura Modal (GPU A10 24GB)
+Data: 17 de Janeiro de 2026
+Classificação: Relatório Técnico Avançado
+Hardware Alvo: NVIDIA A10G (24GB VRAM) via Modal
+Arquitetura: Non-Llama (Qwen + Mistral/Magnum)
+Domínio: Análise Visual e Geração de Texto Generativo Sem Restrições (Uncensored)
+________________
+1. Sumário Executivo e Visão Arquitetural
+Este relatório delineia a estratégia de engenharia, a seleção de componentes e a implementação prática de um pipeline de Inteligência Artificial multimodal projetado para operar em ambientes com restrições de memória (GPU única de 24GB), especificamente na plataforma serverless Modal. O objetivo central é a criação de um sistema capaz de ingerir imagens complexas, incluindo conteúdo adulto (NSFW), analisá-las com precisão anatômica e contextual, e converter essa análise em narrativas literárias ou interações de roleplay erótico de alta fidelidade.
+A premissa fundamental deste projeto é a rejeição da arquitetura Llama (Meta). Embora a família Llama 3 tenha estabelecido padrões de desempenho, ela carrega consigo um alinhamento de segurança (safety alignment) intrínseco e restrições de licenciamento que limitam casos de uso focados em conteúdo adulto não moderado. Para contornar isso, a arquitetura proposta adota uma abordagem híbrida "Best-of-Breed", integrando o ecossistema Qwen (Alibaba Cloud) para a visão computacional avançada e a linhagem Mistral-Nemo (Mistral AI), especificamente através dos finetunes Magnum, para a geração textual.
+A viabilidade técnica de executar simultaneamente um Vision Language Model (VLM) de 7 bilhões de parâmetros e um Large Language Model (LLM) de 12 bilhões de parâmetros em uma única placa de 24GB depende estritamente de técnicas de compressão de modelo avançadas. A análise indica que a quantização de 4-bits (NF4), viabilizada pela biblioteca bitsandbytes, é o único caminho matemático sustentável para alocar ambos os modelos mantendo uma janela de contexto (KV Cache) funcional. Este relatório detalha não apenas o código, mas a teoria por trás da gestão de memória, as estratégias de engenharia de prompt para contornar a censura residual e a otimização de infraestrutura no Modal.
+________________
+2. Análise do Ecossistema de Hardware e Restrições de Memória
+A escolha da GPU NVIDIA A10G na plataforma Modal impõe um teto rígido de 24GB de VRAM. Compreender a hierarquia de memória é crucial para o sucesso da implementação, pois a falha em gerenciar este recurso resultará em erros de Out Of Memory (OOM) ou em uma degradação severa de desempenho devido ao swapping para a RAM da CPU.
+2.1. O Orçamento de VRAM na A10G
+A memória de vídeo (VRAM) deve acomodar quatro componentes principais durante a inferência:
+1. Pesos do Modelo (Model Weights): O armazenamento estático dos parâmetros da rede neural.
+2. Cache KV (Key-Value Cache): A memória dinâmica que armazena o contexto da conversa e da imagem processada. O consumo cresce linearmente com o comprimento da sequência e, no caso de VLMs modernos, pode explodir dependendo da resolução da imagem.
+3. Buffers de Ativação: Memória temporária usada durante a passagem direta (forward pass) para cálculos de tensores.
+4. Overhead do Framework: Bibliotecas como PyTorch e CUDA kernels ocupam, invariavelmente, entre 500MB a 1.5GB apenas para inicializar o contexto de execução.
+2.2. A Matemática da Inviabilidade em FP16
+Em precisão padrão de meia-precisão (FP16 ou BF16), cada parâmetro de um modelo ocupa 2 bytes. Para o pipeline proposto:
+* VLM (Qwen2.5-VL-7B): $7 \times 10^9 \text{ parâmetros} \times 2 \text{ bytes} \approx 14 \text{ GB}$.
+* LLM (Magnum-12B): $12 \times 10^9 \text{ parâmetros} \times 2 \text{ bytes} \approx 24 \text{ GB}$.
+A soma simples dos pesos (38 GB) excede a capacidade física da A10 (24 GB) em mais de 50%, tornando impossível o carregamento nativo dos modelos, mesmo antes de considerar o contexto ou o processamento de imagens. Isso valida a necessidade imperativa de quantização agressiva.
+2.3. A Solução via Quantização NF4 (4-bit NormalFloat)
+A técnica QLoRA introduziu o tipo de dado NF4 (NormalFloat 4-bit), que é teoricamente ótimo para representar pesos de redes neurais distribuídos normalmente. Ao reduzir a precisão de armazenamento para 4 bits (0.5 bytes por parâmetro) enquanto mantém a computação em 16 bits (BFloat16), conseguimos uma compressão drástica com perda mínima de perplexidade.
+Novo Orçamento de Memória com NF4:
+* VLM (Qwen2.5-VL-7B): $7 \times 10^9 \times 0.6 \text{ bytes (média c/ overhead)} \approx 5.2 \text{ GB}$.
+* LLM (Magnum-12B): $12 \times 10^9 \times 0.6 \text{ bytes} \approx 8.1 \text{ GB}$.
+* Overhead do Sistema: ~1.5 GB.
+* Total Estático: $5.2 + 8.1 + 1.5 \approx 14.8 \text{ GB}$.
+Saldo Disponível: $24.0 - 14.8 = \mathbf{9.2 \text{ GB}}$.
+Estes ~9GB livres são a margem de manobra crítica. Eles serão utilizados inteiramente pelo KV Cache. Considerando que o Qwen2.5-VL utiliza Naive Dynamic Resolution, uma imagem de alta resolução pode gerar milhares de tokens visuais, consumindo rapidamente gigabytes de cache. A arquitetura proposta deve, portanto, incluir mecanismos de limitação de resolução para garantir que o pipeline não colapse sob imagens 4K não tratadas.2
+________________
+3. Seleção e Justificativa dos Modelos "Non-Llama"
+A restrição de evitar a arquitetura Llama nos força a explorar o ecossistema open-weights em busca de modelos que ofereçam raciocínio superior e permissividade de conteúdo. A análise aponta para uma combinação sinérgica de modelos asiáticos (Qwen) e europeus (Mistral).
+3.1. O Componente Visual: Qwen2.5-VL-7B-Instruct (Abliterated)
+O modelo Qwen2.5-VL, desenvolvido pela Alibaba Cloud, representa atualmente o estado da arte em modelos multimodais abertos de tamanho médio, superando frequentemente concorrentes proprietários como GPT-4o-mini em benchmarks visuais específicos.4
+3.1.1. Inovação: Resolução Dinâmica e M-RoPE
+A maioria dos VLMs (incluindo versões anteriores do LLaVA) redimensiona imagens para quadrados fixos (ex: $336 \times 336$ pixels), destruindo detalhes finos e distorcendo a proporção de aspecto. O Qwen2.5-VL introduz a Naive Dynamic Resolution, que processa imagens em sua resolução nativa dividindo-as em patches variáveis. Isso é complementado pelo M-RoPE (Multimodal Rotary Positional Embeddings), que permite ao modelo compreender a posição espacial relativa em 2D, 1D (texto) e 3D (vídeo temporal).5
+Para um pipeline "uncensored" focado em anatomia, isso é vital. Detalhes sutis em fotografias de corpo inteiro ou close-ups não são perdidos na compressão, permitindo descrições anatomicamente precisas que alimentam melhor o gerador de texto subsequente.
+3.1.2. O Imperativo da Abliteração
+Modelos base como o Qwen2.5-VL-Instruct possuem fortes filtros de segurança. Ao receber uma imagem NSFW, a resposta padrão é uma recusa ("I cannot analyze explicit content"). Para este pipeline, utilizaremos uma versão Abliterated (como huihui-ai/Qwen2.5-VL-7B-Instruct-abliterated ou similar). A abliteração é um processo cirúrgico que identifica e suprime os vetores de ativação responsáveis pela recusa nas camadas do modelo, sem a necessidade de finetuning destrutivo que poderia comprometer a inteligência visual geral.7
+3.2. O Componente Textual: Magnum-v4-12B (Mistral-Nemo)
+Para a geração de texto, a escolha recai sobre a família Magnum, especificamente a versão v4 baseada no Mistral-Nemo 12B.
+3.2.1. Arquitetura Mistral-Nemo e Tokenizer Tekken
+O Mistral-Nemo é um modelo de 12 bilhões de parâmetros desenvolvido pela Mistral AI em colaboração com a NVIDIA. Ele se distingue da arquitetura Llama pelo uso do tokenizer Tekken, que é significativamente mais eficiente na compressão de texto e código, permitindo contextos efetivos maiores dentro da mesma janela de tokens. Sua licença Apache 2.0 e sua origem europeia o colocam fora da esfera de influência direta da Meta.9
+3.2.2. A Superioridade do Magnum em Conteúdo Adulto
+O Magnum-v4 não é apenas um modelo base; é um finetune altamente especializado. Ele foi treinado com logs sintéticos e curados de interações de alta qualidade (muitas vezes derivados de Claude 3 Opus e Sonnet "jailbroken"), focando especificamente em:
+1. Prosa Literária: Evita o estilo corporativo/asséptico e repetições ("shivers down spine", "minx") comuns em modelos menores.
+2. Conformidade NSFW: É projetado para aceitar cenários extremos e explícitos sem hesitação moral.
+3. Coerência de Roleplay: Mantém a consistência de personagens e cenários melhor que modelos de 7B ou 8B (Llama 3), preenchendo a lacuna entre modelos leves e os pesados de 70B.10
+A combinação de Qwen2.5-VL (olhos precisos) e Magnum-12B (mente criativa e desinibida) cria um pipeline robusto onde a visão alimenta a narrativa sem os filtros de segurança usuais.
+________________
+4. Arquitetura de Software e Orquestração no Modal
+A implementação no Modal exige uma mudança de paradigma em relação a servidores dedicados tradicionais. O Modal opera com contêineres efêmeros que iniciam sob demanda. A arquitetura deve ser otimizada para cold starts rápidos e uso eficiente de volumes persistentes.
+4.1. Transformers vs. vLLM: A Escolha Pragmática
+Embora o vLLM seja o padrão ouro para serving de alta performance (throughput), ele apresenta comportamentos problemáticos em ambientes de GPU única com múltiplos modelos:
+* Alocação Agressiva de Memória: O vLLM tenta, por padrão, reservar 90% da VRAM disponível para seu gerenciador de memória PagedAttention. Executar duas instâncias de vLLM (uma para o VLM, outra para o LLM) na mesma GPU resultaria em conflitos imediatos ou fragmentação severa, exigindo ajustes manuais arriscados de gpu_memory_utilization (ex: 0.4 para um, 0.5 para o outro).13
+* Suporte a Multimodalidade: O suporte do vLLM para a arquitetura Qwen2.5-VL é recente e, em alguns casos, experimental, especialmente no que tange ao processamento de vídeo e resolução dinâmica complexa.15
+Portanto, a arquitetura escolhida utiliza a biblioteca Hugging Face Transformers combinada com Accelerate e BitsAndBytes. Esta abordagem permite um controle sequencial mais fino sobre a alocação de memória. O PyTorch, gerenciado pelo Accelerate, aloca memória dinamicamente conforme necessário, permitindo que os dois modelos coexistam mais pacificamente na mesma VRAM, desde que não sejam executados exatamente no mesmo milissegundo (o que é natural em um pipeline sequencial: primeiro ver, depois escrever).16
+4.2. Implementação do Código
+Abaixo segue a implementação completa e comentada do pipeline para a plataforma Modal.
+
+
+Python
+
+
+
+
+import modal
+
+# 1. Definição da Imagem do Container
+# Utilizamos uma imagem Debian Slim com Python 3.11 e as dependências críticas.
+# A instalação do 'transformers' é feita via git para garantir suporte às últimas arquiteturas.
+image = (
+   modal.Image.debian_slim(python_version="3.11")
+  .pip_install(
+       "torch",
+       "torchvision",
+       "accelerate",
+       "bitsandbytes",  # Essencial para NF4
+       "qwen-vl-utils[decord]",  # Processamento de vídeo/imagem do Qwen
+       "pillow",
+       "numpy",
+       "scipy",
+       "termcolor" # Apenas para logs coloridos
+   )
+  .pip_install("git+https://github.com/huggingface/transformers")
+)
+
+app = modal.App("uncensored-pipeline-a10-v1")
+
+# 2. Definição de Volume Persistente
+# Isso evita o download repetido de ~15GB de pesos a cada execução.
+# Os modelos são baixados uma vez e cacheados em '/models'.
+model_vol = modal.Volume.from_name("model-weights-cache-v1", create_if_missing=True)
+MODEL_CACHE_DIR = "/models"
+
+# Identificadores dos Modelos no Hugging Face Hub
+# VLM: Versão abliterada para garantir conformidade com requisitos NSFW
+VLM_ID = "huihui-ai/Qwen2.5-VL-7B-Instruct-abliterated"
+# LLM: Magnum v4 12B (Mistral-Nemo) para prosa superior
+LLM_ID = "anthracite-org/magnum-v4-12b"
+
+@app.cls(
+   gpu="A10G",       # Hardware alvo: 24GB VRAM
+   image=image,
+   volumes={MODEL_CACHE_DIR: model_vol}, # Montagem do volume
+   timeout=1200,     # Timeout de 20 min para operações longas
+   container_idle_timeout=300 # Mantém container vivo por 5 min após uso
+)
+class UncensoredPipeline:
+    @modal.enter()
+   def load_models(self):
+       """
+       Esta função roda apenas no Cold Start (inicialização do container).
+       Carrega ambos os modelos na VRAM com quantização 4-bit.
+       """
+       import torch
+       from transformers import (
+           Qwen2_5_VLForConditionalGeneration, 
+           AutoTokenizer, 
+           AutoProcessor, 
+           AutoModelForCausalLM, 
+           BitsAndBytesConfig
+       )
+
+       print("⚙️  Configurando Quantização NF4...")
+       # Configuração crítica para caber na A10
+       bnb_config = BitsAndBytesConfig(
+           load_in_4bit=True,
+           bnb_4bit_quant_type="nf4", # NormalFloat 4-bit (ótimo para pesos normais)
+           bnb_4bit_use_double_quant=True, # Quantiza os constantes de quantização (economia extra)
+           bnb_4bit_compute_dtype=torch.bfloat16 # Computação em BF16 para estabilidade
+       )
+
+       print(f"👁️  Carregando VLM: {VLM_ID}...")
+       self.vlm_processor = AutoProcessor.from_pretrained(VLM_ID, cache_dir=MODEL_CACHE_DIR)
+       
+       # Limitação de pixels é CRUCIAL para evitar OOM com imagens 4K no Qwen
+       # Qwen usa patches de 14x14. Limitamos para um máximo razoável.
+       # 1280 * 28 * 28 define um teto seguro para o input visual.
+       self.vlm_processor.image_processor.max_pixels = 1003520 # Aprox 1MP
+       
+       self.vlm_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
+           VLM_ID,
+           quantization_config=bnb_config,
+           device_map="cuda", # Força carregamento na GPU primária
+           cache_dir=MODEL_CACHE_DIR,
+           attn_implementation="flash_attention_2" # Otimização de memória se disponível
+       )
+
+       print(f"✍️  Carregando LLM: {LLM_ID}...")
+       self.llm_tokenizer = AutoTokenizer.from_pretrained(LLM_ID, cache_dir=MODEL_CACHE_DIR)
+       self.llm_model = AutoModelForCausalLM.from_pretrained(
+           LLM_ID,
+           quantization_config=bnb_config,
+           device_map="cuda", # Compartilha a mesma GPU
+           cache_dir=MODEL_CACHE_DIR,
+           attn_implementation="flash_attention_2"
+       )
+       print("✅ Pipeline carregado e pronto para inferência.")
+
+    @modal.method()
+   def process_request(self, image_url: str, user_instruction: str):
+       import torch
+       from qwen_vl_utils import process_vision_info
+
+       # --- FASE 1: Visão Computacional (VLM) ---
+       print("\n🔍 Iniciando Análise Visual...")
+       
+       # Prompt de Sistema para o VLM:
+       # Focado em quebrar a censura residual através de diretrizes clínicas e objetivas.
+       vlm_messages =
+       }]
+
+       # Pré-processamento
+       text_input = self.vlm_processor.apply_chat_template(
+           vlm_messages, tokenize=False, add_generation_prompt=True
+       )
+       image_inputs, video_inputs = process_vision_info(vlm_messages)
+       inputs = self.vlm_processor(
+           text=[text_input],
+           images=image_inputs,
+           videos=video_inputs,
+           padding=True,
+           return_tensors="pt",
+       ).to("cuda")
+
+       # Geração da Descrição
+       with torch.no_grad():
+           generated_ids = self.vlm_model.generate(
+               **inputs, 
+               max_new_tokens=512,
+               temperature=0.7 # Temperatura mais baixa para precisão factual
+           )
+           generated_ids_trimmed = [
+               out_ids[len(in_ids):] for in_ids, out_ids in zip(inputs.input_ids, generated_ids)
+           ]
+           visual_description = self.vlm_processor.batch_decode(
+               generated_ids_trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+           )
+
+       print(f"📝 Descrição Gerada: {visual_description[:150]}...")
+
+       # --- FASE 2: Narrativa Textual (LLM) ---
+       print("🔥 Iniciando Geração de Narrativa...")
+
+       # Construção do Prompt para o Magnum
+       # O Magnum precisa saber que é um especialista em escrita erótica para desbloquear seu potencial.
+       llm_messages =
+       
+       input_ids = self.llm_tokenizer.apply_chat_template(
+           llm_messages, return_tensors="pt", add_generation_prompt=True
+       ).to("cuda")
+
+       with torch.no_grad():
+           output_ids = self.llm_model.generate(
+               input_ids,
+               max_new_tokens=1024, # Permite histórias longas
+               temperature=0.85,    # Mais criatividade que o VLM
+               top_p=0.95,
+               repetition_penalty=1.1, # Evita loops comuns em modelos menores
+               do_sample=True
+           )
+           final_story = self.llm_tokenizer.decode(
+               output_ids[input_ids.shape[1]:], skip_special_tokens=True
+           )
+
+       return {
+           "visual_analysis": visual_description,
+           "generated_story": final_story
+       }
+
+@app.local_entrypoint()
+def main():
+   # Ponto de entrada para execução via terminal: modal run script.py
+   pipeline = UncensoredPipeline()
+   
+   # Exemplo de uso
+   url = "https://public-test-images.s3.amazonaws.com/test_img.jpg" # Substituir por URL real
+   prompt = "Write a slow-burn scene that escalates into intense passion."
+   
+   ret = pipeline.process_request.remote(image_url=url, user_instruction=prompt)
+   
+   print("="*50)
+   print("ANÁLISE VISUAL (Qwen):")
+   print(ret["visual_analysis"])
+   print("="*50)
+   print("HISTÓRIA (Magnum):")
+   print(ret["generated_story"])
+
+________________
+5. Estratégias Avançadas de Prompt e Engenharia "Uncensored"
+A simples utilização de modelos sem filtros não garante qualidade. A "engenharia de prompt" deve atuar como uma ponte semântica entre a frieza da visão computacional e o calor da narrativa literária.
+5.1. A Ponte Semântica (Bridge Prompting)
+Modelos de visão, mesmo os abliterados, tendem a gerar saídas clínicas e descritivas ("Subject A is touching Subject B on the chest"). Se essa saída for passada crua para o LLM, o texto resultante pode soar como um relatório policial.
+A técnica de Bridge Prompting consiste em reformular a saída do VLM antes de entregá-la ao LLM. No código acima, isso é feito instruindo o Magnum a tratar a descrição como "contexto visual" ou "breakdown de cena", e não como o início da história. O System Prompt do Magnum ("You are an expert erotica author...") é fundamental para mudar o "modo" do modelo de assistente útil para escritor criativo.18
+5.2. Quebrando a Censura Residual
+Embora o Qwen2.5-VL-Abliterated não tenha vetores de recusa explícitos, ele ainda foi pré-treinado em dados que associam nudez a conteúdo médico ou artístico. Para obter as melhores descrições NSFW:
+* Evite: Prompts vulgares diretos ("Describe the porn"). Isso pode confundir o modelo, que tentará categorizar a imagem em vez de descrevê-la.
+* Prefira: Prompts focados em precisão anatômica e estado físico ("Describe the physiological state, specific muscle contractions, flush of the skin, and exact anatomical positioning"). Isso alinha o modelo com uma tarefa de "análise objetiva", onde ele performa melhor, deixando a "sujeira" para o LLM Magnum, que é especialista nisso.
+5.3. Controle de Alucinação Visual
+O Qwen2.5-VL pode alucinar detalhes se a imagem for ambígua. Para mitigar isso em contextos adultos (onde a anatomia incorreta é um grande detrator), recomenda-se usar uma temperatura baixa (0.5 - 0.7) na geração visual. Já para o texto, onde a criatividade é desejada, a temperatura pode subir para 0.8 - 0.9.
+________________
+6. Otimização de Performance e Gestão de Riscos
+6.1. Flash Attention 2
+A arquitetura Ampere da NVIDIA A10 suporta nativamente Flash Attention 2, uma otimização de kernel que reduz o uso de memória do mecanismo de atenção de quadrático para quase linear em relação ao comprimento da sequência. No código, a flag attn_implementation="flash_attention_2" é passada explicitamente. Isso é vital para permitir que o Magnum mantenha um contexto longo (histórico da conversa/história) sem estourar a VRAM.20
+6.2. O Perigo da Resolução Dinâmica
+O recurso de resolução dinâmica do Qwen é uma faca de dois gumes. Uma imagem vertical muito longa (ex: screenshot de celular) pode ser fatiada em centenas de tokens. Se não controlado, isso consome todo o KV Cache disponível. A linha self.vlm_processor.image_processor.max_pixels = 1003520 (aproximadamente 1 Megapixel) no código atua como um fusível de segurança, garantindo que imagens gigantes sejam redimensionadas para um limite seguro antes da inferência, protegendo a estabilidade do sistema.2
+6.3. Persistência de Cache e Custos
+O uso de modal.Volume é essencial economicamente. Sem ele, cada execução do script baixaria ~15GB de modelos do Hugging Face, consumindo largura de banda e tempo de GPU ocioso (pago). Com o volume, o cold start é reduzido de minutos para segundos após a primeira execução, pois os pesos são lidos diretamente do disco local virtualizado.22
+________________
+7. Conclusão
+A implementação deste pipeline demonstra que a barreira para a criação de sistemas de IA generativa avançados, privados e sem censura não é mais o acesso a clusters de H100s, mas sim a engenharia de software inteligente. Através da combinação criteriosa de modelos Non-Llama especializados (Qwen para visão, Magnum para texto), quantização NF4 de última geração e orquestração eficiente no Modal, é possível transformar uma única GPU A10 de 24GB em uma poderosa estação de trabalho criativa para conteúdo adulto.
+A solução apresentada oferece independência das políticas restritivas das grandes corporações de IA, mantendo a qualidade de geração em um nível comparável ou superior a serviços comerciais generalistas, com a vantagem adicional da privacidade total dos dados processados. O código fornecido é modular e pronto para produção, servindo como base sólida para aplicações de entretenimento adulto, assistentes de escrita criativa ou análise automatizada de conteúdo sensível.
+Referências citadas
+1. Conserving Memory - vLLM, acessado em janeiro 17, 2026, https://docs.vllm.ai/en/latest/configuration/conserving_memory/
+2. Amount of ram Qwen 2.5-7B-1M takes? : r/LocalLLaMA - Reddit, acessado em janeiro 17, 2026, https://www.reddit.com/r/LocalLLaMA/comments/1j79o3l/amount_of_ram_qwen_257b1m_takes/
+3. Qwen/Qwen2.5-VL-7B-Instruct - Hugging Face, acessado em janeiro 17, 2026, https://huggingface.co/Qwen/Qwen2.5-VL-7B-Instruct
+4. Qwen2.5 VL! Qwen2.5 VL! Qwen2.5 VL! | Qwen, acessado em janeiro 17, 2026, https://qwenlm.github.io/blog/qwen2.5-vl/
+5. Qwen2.5-VL: Multimodal Vision-Language Model - Emergent Mind, acessado em janeiro 17, 2026, https://www.emergentmind.com/topics/qwen2-5-vl
+6. redule26/huihui_ai_qwen2.5-vl-7b-abliterated - Ollama, acessado em janeiro 17, 2026, https://ollama.com/redule26/huihui_ai_qwen2.5-vl-7b-abliterated
+7. Qwen2.5-VL-7B-Instruct-abliterated - PromptLayer, acessado em janeiro 17, 2026, https://www.promptlayer.com/models/qwen25-vl-7b-instruct-abliterated
+8. QuantFactory/magnum-v4-12b-GGUF - Hugging Face, acessado em janeiro 17, 2026, https://huggingface.co/QuantFactory/magnum-v4-12b-GGUF
+9. LLM Recommendation for Erotic Roleplay : r/LocalLLaMA - Reddit, acessado em janeiro 17, 2026, https://www.reddit.com/r/LocalLLaMA/comments/1ge2fzf/llm_recommendation_for_erotic_roleplay/
+10. Good RP Models - a Rikotta Collection - Hugging Face, acessado em janeiro 17, 2026, https://huggingface.co/collections/Rikotta/good-rp-models
+11. anthracite-org/magnum-v4-12b - Featherless.ai, acessado em janeiro 17, 2026, https://featherless.ai/models/anthracite-org/magnum-v4-12b/readme
+12. Setting two LLMs on different GPUs in one offline inference script - General - vLLM Forums, acessado em janeiro 17, 2026, https://discuss.vllm.ai/t/setting-two-llms-on-different-gpus-in-one-offline-inference-script/765
+13. Run multiple models - General - vLLM Forums, acessado em janeiro 17, 2026, https://discuss.vllm.ai/t/run-multiple-models/1181
+14. [Performance]: Multi-Modal Benchmark on NVIDIA A100 – Qwen2.5-VL / MiniCPM-V-4 / InternVL3_5-4B / InternVL3_5-2B · Issue #24728 · vllm-project/vllm - GitHub, acessado em janeiro 17, 2026, https://github.com/vllm-project/vllm/issues/24728
+15. Bitsandbytes - Hugging Face, acessado em janeiro 17, 2026, https://huggingface.co/docs/transformers/quantization/bitsandbytes
+16. How to Quantize LLMs Using BitsandBytes - ApX Machine Learning, acessado em janeiro 17, 2026, https://apxml.com/posts/efficient-llm-quantization-bitsandbytes
+17. Best NSF prompter AI… with vision? - comfyui - Reddit, acessado em janeiro 17, 2026, https://www.reddit.com/r/comfyui/comments/1obqyaj/best_nsf_prompter_ai_with_vision/
+18. [Magnum/v4] 9b, 12b, 22b, 27b, 72b, 123b : r/LocalLLaMA - Reddit, acessado em janeiro 17, 2026, https://www.reddit.com/r/LocalLLaMA/comments/1g7purh/magnumv4_9b_12b_22b_27b_72b_123b/
+19. Decoding high-bandwidth memory: A practical guide to GPU memory for fine-tuning AI models - DEV Community, acessado em janeiro 17, 2026, https://dev.to/googleai/decoding-high-bandwidth-memory-a-practical-guide-to-gpu-memory-for-fine-tuning-ai-models-56af
+20. Efficient Inference on a Single GPU - Hugging Face, acessado em janeiro 17, 2026, https://huggingface.co/docs/transformers/v4.31.0/en/perf_infer_gpu_many
+21. Storing model weights on Modal | Modal Docs, acessado em janeiro 17, 2026, https://modal.com/docs/guide/model-weights
+22. Volumes | Modal Docs, acessado em janeiro 17, 2026, https://modal.com/docs/guide/volumes
