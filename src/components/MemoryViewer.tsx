@@ -204,6 +204,11 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
                     <p className="text-xs text-warm-300 leading-relaxed font-mono">
                       {result.clinical_rationale_pt_br}
                     </p>
+                    {result?.error && (
+                      <div className="mt-2 text-[9px] text-amber-500/60 uppercase tracking-wider">
+                        Modo Offline (Ollama)
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
