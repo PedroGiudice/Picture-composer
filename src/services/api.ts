@@ -1,18 +1,23 @@
 // src/services/api.ts
-// Service layer handling communication with the Modal.com A100 Backend
+// Service layer handling communication with the Modal.com Backend
+// Backend v2: JoyCaption (VLM) + Midnight Rose AWQ (LLM)
 
-// TODO: This URL will be replaced by the actual Modal deployment URL via ENV variables
-const BACKEND_URL = import.meta.env.VITE_MODAL_BACKEND_URL || "https://pedrogiudice--picture-composer-backend-a100-process-intimacy-request.modal.run";
-const MOSAIC_BACKEND_URL = import.meta.env.VITE_MODAL_MOSAIC_URL || "https://pedrogiudice--picture-composer-backend-a100-process-mosaic-request.modal.run";
+const BACKEND_URL = import.meta.env.VITE_MODAL_BACKEND_URL || "https://pedrogiudice--picture-composer-v2-process-intimacy-request.modal.run";
+const MOSAIC_BACKEND_URL = import.meta.env.VITE_MODAL_MOSAIC_URL || "https://pedrogiudice--picture-composer-v2-process-mosaic-request.modal.run";
 
 export interface IntimacyResponse {
-  safety_validation: string;
-  clinical_rationale_pt_br: string;
   instruction_title_pt_br: string;
   instruction_text_pt_br: string;
+  clinical_rationale_pt_br: string;
   intensity_metric: number;
   duration_sec: number;
+  // V2 metadata
+  visual_description?: string;
+  vision_model_used?: string;
+  text_model_used?: string;
   error?: string;
+  // Legacy field for backwards compat
+  safety_validation?: string;
 }
 
 export class SomaticBackend {
@@ -75,12 +80,12 @@ export class SomaticBackend {
 
   private static mockFallback(level: number): IntimacyResponse {
     return {
-      safety_validation: "Simulation Mode",
-      clinical_rationale_pt_br: "Simulação de protocolo devido à ausência de conexão neural.",
       instruction_title_pt_br: "Protocolo de Contato Visual",
-      instruction_text_pt_br: "Mantenham contato visual direto sem piscar excessivamente. Sincronizem a respiração até que o desconforto se torne calor.",
+      instruction_text_pt_br: "Mantenham contato visual direto sem piscar excessivamente. Sincronizem a respiracao ate que o desconforto se torne calor.",
+      clinical_rationale_pt_br: "Simulacao de protocolo devido a ausencia de conexao com backend.",
       intensity_metric: level,
-      duration_sec: 120
+      duration_sec: 120,
+      error: "Backend offline - usando fallback local"
     };
   }
 }
