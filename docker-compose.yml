@@ -1,0 +1,20 @@
+services:
+  dev-env:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/app
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    network_mode: host
+    # GPU configuration commented out for CPU-only execution
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+    stdin_open: true
+    tty: true

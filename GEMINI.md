@@ -1,66 +1,38 @@
-# Project Context: Couple's Memory Deck (Picture-composer)
+# GEMINI.md - Context & Operational Directives
 
-## Project Overview
-This is a React-based web application designed as a romantic "Digital Memory Deck" for couples. It allows users to upload photos, view them alongside romantic questions, and create artistic photo mosaics. The application integrates with Google's Gemini API for creative content generation and Google Drive for photo selection.
+## 1. Project Identity & Architecture
+**Project:** "Couple's Memory Deck" (Picture-composer) + "Uncensored Somatic Backend"
+**Goal:** A dual-stack application. Frontend (React) providing a romantic UI, communicating with a planned high-performance Backend (Modal/Python) for uncensored, somatically-focused AI analysis.
 
-### Key Features
-1.  **Photo Upload:** Direct file upload or integration with Google Drive (via Google Picker).
-2.  **Memory Deck:** An interactive viewing mode (`MemoryViewer`) that pairs uploaded photos with romantic questions to spark conversation.
-3.  **Mosaic Creator:** A feature that takes a "target" photo and recreates it using hundreds of smaller "source" photos (the uploaded memories).
-4.  **AI Integration:** Uses Google Gemini 2.0 Flash model to analyze generated mosaics and create poetic titles.
+### Stack A: Frontend (Current Repo)
+*   **Tech:** React 19, Vite, TypeScript, Tailwind CSS (Utility classes only).
+*   **Key Components:** `MemoryViewer` (Session logic), `MosaicCreator` (Canvas manipulation), `PhotoUploader` (Google Picker).
+*   **Integration:** Currently calls Gemini API directly (`@google/genai`). Future state: Proxy through Backend.
+*   **Persona:** "Dr. Elena" - Clinical AI Sexologist. Direct, authoritative, physiological focus.
 
-## Tech Stack
-*   **Framework:** React 19 (via Vite)
-*   **Language:** TypeScript
-*   **Styling:** Tailwind CSS (inferred from utility classes)
-*   **Icons:** Lucide React
-*   **AI:** `@google/genai` (Google Gemini SDK)
-*   **APIs:** Google Drive/Picker API, Google Gemini API
+### Stack B: Backend (Specification Phase)
+*   **Infrastructure:** Modal.com Serverless (GPU A100/A10G).
+*   **Core Engine:** Python 3.11, vLLM, PyTorch.
+*   **Models:**
+    *   **Vision:** Qwen2.5-VL-7B-Instruct (Abliterated).
+    *   **Text:** Midnight-Miqu-70B-v1.5-awq (or Magnum-v4-12B fallback).
+*   **Protocol:** Fast, uncensored inference using NF4/AWQ quantization.
 
-## Setup & Running
+## 2. Operational Rules
+1.  **Strict Typing:** `any` is forbidden in TypeScript. Pydantic models required for Python.
+2.  **Safety:** `kit_create_checkpoint` BEFORE major refactors.
+3.  **Environment:** Frontend uses `import.meta.env` (via Vite define). Backend uses Modal Secrets.
+4.  **Error Handling:** Fail gracefully. If AI fails, fallback to static questions (`constants.ts`).
 
-### Prerequisites
-*   Node.js (v18+ recommended)
-*   Google Cloud Console project with:
-    *   Gemini API enabled (API Key required)
-    *   Google Drive/Picker API enabled (Client ID & API Key required for Drive integration)
+## 3. Known Issues & Debts
+*   `MosaicCreator.tsx` relies on `process.env` (shimmed in `vite.config.ts`).
+*   Tailwind loaded via CDN in `index.html` (should be PostCSS build).
+*   No real backend integration yet; logic is split between Client-side and a text spec.
 
-### Installation
-```bash
-npm install
-```
-
-### Environment Configuration
-1.  Create a `.env.local` file in the root directory.
-2.  Add your Gemini API key:
-    ```env
-    GEMINI_API_KEY=your_gemini_api_key_here
-    ```
-    *Note: The `MosaicCreator.tsx` currently references `process.env.API_KEY`. Verify if this needs to be `import.meta.env.VITE_GEMINI_API_KEY` for Vite compatibility.*
-
-### Development Scripts
-*   **Start Dev Server:** `npm run dev`
-*   **Build for Production:** `npm run build`
-*   **Preview Build:** `npm run preview`
-
-## Architecture & Key Files
-
-### Directory Structure
-*   `components/`: React UI components.
-    *   `MosaicCreator.tsx`: Handles mosaic generation logic and Gemini AI calls.
-    *   `PhotoUploader.tsx`: Manages file uploads.
-    *   `MemoryViewer.tsx`: Display logic for the "Memory Deck" mode.
-*   `utils/`: Helper functions.
-    *   `mosaic.ts`: Core algorithm for generating photo mosaics.
-    *   `googleIntegration.ts`: Handles Google OAuth, Drive Picker, and credential management (stored in `localStorage`).
-*   `App.tsx`: Main entry point handling application state (`UPLOAD`, `VIEWING`, `MOSAIC_SETUP`).
-*   `types.ts`: TypeScript definitions for App State and Memory objects.
-
-### Data Flow
-1.  **State Management:** `App.tsx` holds the global state for `uploadedFiles` and the current view (`appState`).
-2.  **Mosaic Generation:** `MosaicCreator` takes `sourceFiles` (from App state) and a user-selected `targetFile`. It delegates the heavy lifting to `utils/mosaic.ts`.
-3.  **AI Analysis:** Once a mosaic is generated, `MosaicCreator` converts it to Base64 and sends it to Gemini to generate a title.
-
-## Notes for Development
-*   **Google Auth:** The Google Picker integration in `utils/googleIntegration.ts` relies on dynamic credential entry (stored in LocalStorage) rather than hardcoded env vars for the Client ID/API Key.
-*   **Mosaic Logic:** The mosaic generation happens client-side. Large numbers of source photos might impact performance.
+## 4. Agent Responsibilities (ADK)
+*   `dev-front`: React/Vite expert. Owns UI/UX and client logic.
+*   `dev-back`: Python/Modal expert. Owns the "Uncensored Pipeline" implementation.
+*   `test-front`: Cypress/Jest. Validates UI flows and Dr. Elena's persona rendering.
+*   `test-back`: PyTest. Validates vLLM inference, JSON schemas, and GPU memory safety.
+*   `ops-cicd-front`: Vercel/Netlify deployment pipelines.
+*   `ops-cicd-back`: Modal deployment, Model weight caching, Cold-start optimization.
