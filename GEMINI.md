@@ -1,38 +1,101 @@
-# GEMINI.md - Context & Operational Directives
+# GEMINI.md - Architecture North Star
 
-## 1. Project Identity & Architecture
-**Project:** "Couple's Memory Deck" (Picture-composer) + "Uncensored Somatic Backend"
-**Goal:** A dual-stack application. Frontend (React) providing a romantic UI, communicating with a planned high-performance Backend (Modal/Python) for uncensored, somatically-focused AI analysis.
+## Project Identity
 
-### Stack A: Frontend (Current Repo)
-*   **Tech:** React 19, Vite, TypeScript, Tailwind CSS (Utility classes only).
-*   **Key Components:** `MemoryViewer` (Session logic), `MosaicCreator` (Canvas manipulation), `PhotoUploader` (Google Picker).
-*   **Integration:** Currently calls Gemini API directly (`@google/genai`). Future state: Proxy through Backend.
-*   **Persona:** "Dr. Elena" - Clinical AI Sexologist. Direct, authoritative, physiological focus.
+**Project:** Picture Composer (Couple's Memory Deck)
+**Goal:** Dual-stack application for romantic memory curation with AI-powered intimacy experiences.
 
-### Stack B: Backend (Specification Phase)
-*   **Infrastructure:** Modal.com Serverless (GPU A100/A10G).
-*   **Core Engine:** Python 3.11, vLLM, PyTorch.
-*   **Models:**
-    *   **Vision:** Qwen2.5-VL-7B-Instruct (Abliterated).
-    *   **Text:** Midnight-Miqu-70B-v1.5-awq (or Magnum-v4-12B fallback).
-*   **Protocol:** Fast, uncensored inference using NF4/AWQ quantization.
+---
 
-## 2. Operational Rules
-1.  **Strict Typing:** `any` is forbidden in TypeScript. Pydantic models required for Python.
-2.  **Safety:** `kit_create_checkpoint` BEFORE major refactors.
-3.  **Environment:** Frontend uses `import.meta.env` (via Vite define). Backend uses Modal Secrets.
-4.  **Error Handling:** Fail gracefully. If AI fails, fallback to static questions (`constants.ts`).
+## Architecture
 
-## 3. Known Issues & Debts
-*   `MosaicCreator.tsx` relies on `process.env` (shimmed in `vite.config.ts`).
-*   Tailwind loaded via CDN in `index.html` (should be PostCSS build).
-*   No real backend integration yet; logic is split between Client-side and a text spec.
+### Frontend (React/Vite)
 
-## 4. Agent Responsibilities (ADK)
-*   `dev-front`: React/Vite expert. Owns UI/UX and client logic.
-*   `dev-back`: Python/Modal expert. Owns the "Uncensored Pipeline" implementation.
-*   `test-front`: Cypress/Jest. Validates UI flows and Dr. Elena's persona rendering.
-*   `test-back`: PyTest. Validates vLLM inference, JSON schemas, and GPU memory safety.
-*   `ops-cicd-front`: Vercel/Netlify deployment pipelines.
-*   `ops-cicd-back`: Modal deployment, Model weight caching, Cold-start optimization.
+| Component | Purpose |
+|-----------|---------|
+| React 19 + TypeScript | UI Framework |
+| Vite 6.2 | Build tool |
+| Tailwind CSS | Styling |
+| MemoryViewer | Core session experience |
+| MosaicCreator | Photo mosaic generation |
+| PhotoUploader | Google Drive/Photos integration |
+
+### Backend (Modal.com)
+
+| Component | Purpose |
+|-----------|---------|
+| Modal A100 | GPU compute infrastructure |
+| Python 3.11 | Runtime |
+| vLLM | Inference engine |
+| Qwen2.5-VL-7B | Vision model (scene analysis) |
+| Qwen2.5-72B-AWQ | Text model (challenge generation) |
+
+---
+
+## Pipeline
+
+```
+[Image] -> VisionEngine -> [Scene Description] -> GameMasterEngine -> [Challenge JSON]
+```
+
+1. **VisionEngine**: Analyzes uploaded image, outputs objective scene description
+2. **GameMasterEngine**: Takes scene + heat_level, generates intimacy challenge
+
+---
+
+## API Contracts
+
+### POST /process_intimacy_request
+
+**Input:**
+```json
+{
+  "image_url": "https://...",
+  "heat_level": 7
+}
+```
+
+**Output:**
+```json
+{
+  "challenge_title": "...",
+  "challenge_text": "...",
+  "rationale": "...",
+  "duration_seconds": 180,
+  "intensity": 7
+}
+```
+
+### POST /process_mosaic_request
+
+**Input:**
+```json
+{
+  "image_url": "https://..."
+}
+```
+
+**Output:**
+```json
+{
+  "title": "..."
+}
+```
+
+---
+
+## Operational Rules
+
+1. **Strict Typing**: No `any` in TypeScript. Pydantic required for Python.
+2. **Error Handling**: Graceful fallbacks. Static questions if AI fails.
+3. **Environment**: Frontend uses `import.meta.env`. Backend uses Modal Secrets.
+4. **Language**: Portuguese Brazilian for all user-facing content.
+
+---
+
+## Known Technical Debt
+
+- Tailwind via CDN (should be PostCSS build)
+- Auth hardcoded in AuthGate.tsx
+- Google creds in localStorage
+- No automated tests

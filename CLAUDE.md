@@ -231,15 +231,16 @@ Google credentials são armazenadas em `localStorage` (não seguro para produç�
 
 ---
 
-## Persona Dr. Elena
+## AI Pipeline
 
-O sistema usa uma persona de IA chamada **Dr. Elena** - uma sexóloga clínica que:
-- Usa linguagem clínica/somática
-- Responde em Português Brasileiro
-- Ajusta intensidade pelo "heat level" (1-10)
-- Foco em experiências corporais e conexão íntima
+O backend usa dois modelos em sequencia:
 
-Ver: `agents/dev-back/PROTOCOL_ELENA.md`
+1. **VisionEngine** (Qwen2.5-VL-7B): Analise objetiva da cena
+2. **GameMasterEngine** (Qwen2.5-72B-AWQ): Geracao de desafios de intimidade
+
+O sistema ajusta intensidade pelo "heat level" (1-10) e responde em Portugues Brasileiro.
+
+Ver: `backend/backend.py`
 
 ---
 
