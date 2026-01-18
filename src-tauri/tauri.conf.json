@@ -2,12 +2,12 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "HotCocoa",
   "version": "0.1.0",
-  "identifier": "com.hotcocoa.app",
+  "identifier": "com.hotcocoa.desktop",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "bun run dev",
-    "beforeBuildCommand": "bun run build"
+    "devUrl": "http://localhost:3002",
+    "beforeDevCommand": "",
+    "beforeBuildCommand": "/home/cmr-auto/.bun/bin/bun run build"
   },
   "app": {
     "windows": [
