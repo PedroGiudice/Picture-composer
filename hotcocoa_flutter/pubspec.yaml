@@ -1,0 +1,52 @@
+name: hotcocoa_flutter
+description: Couple's Memory Deck - HotCocoa Flutter Edition
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State & Navigation
+  flutter_riverpod: ^2.4.9
+  go_router: ^13.2.0
+
+  # HTTP & APIs
+  dio: ^5.4.0
+
+  # Storage
+  path_provider: ^2.1.2
+  shared_preferences: ^2.2.2
+
+  # Files
+  file_picker: ^6.1.1
+  image: ^4.1.7
+
+  # UI & Animations
+  flutter_animate: ^4.5.0
+
+  # Utilities
+  equatable: ^2.0.5
+  collection: ^1.18.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.8
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: SpaceMono
+      fonts:
+        - asset: assets/fonts/SpaceMono-Regular.ttf
+        - asset: assets/fonts/SpaceMono-Bold.ttf
+          weight: 700
+
+  assets:
+    - assets/fonts/
