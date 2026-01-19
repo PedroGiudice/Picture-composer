@@ -13,14 +13,14 @@ import os
 import logging
 from pathlib import Path
 
-# Add repo root to path so imports work when running directly
-repo_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(repo_root))
+# Add adk-agents directory to path so imports work when running directly
+adk_agents_dir = Path(__file__).parent.parent
+sys.path.insert(0, str(adk_agents_dir))
 
 from dotenv import load_dotenv
 
-from adk_agents.frontend_agent.agent import FrontendDeveloperAgent
-from adk_agents.frontend_agent.config import FrontendConfig
+from frontend_agent.agent import FrontendDeveloperAgent
+from frontend_agent.config import FrontendConfig
 
 
 def setup_logging(level: str = "INFO") -> None:

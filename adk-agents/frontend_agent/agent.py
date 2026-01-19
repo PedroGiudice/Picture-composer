@@ -1,32 +1,41 @@
 """
 Frontend Developer Agent
-A classe principal que orquestra o google.adk para desenvolvimento frontend.
+Orquestra o google-genai para desenvolvimento frontend com tool execution.
 """
 import logging
-from typing import Optional
+import json
+from typing import Optional, Any
 
-# ADK Imports
-from google.adk.agents import Agent
-from google.adk.runners import Runner
-from google.adk.sessions import InMemorySessionService
+from google import genai
 from google.genai import types
 
-# Local Imports
 from .config import FrontendConfig, default_config
 from .prompts import FRONTEND_DEV_INSTRUCTION
-from .tools import FRONTEND_TOOLS
+from .tools import (
+    read_file,
+    write_file,
+    list_directory,
+    run_shell_command,
+    TOOL_DECLARATIONS,
+)
+
+# Map tool names to functions
+TOOL_MAP = {
+    "read_file": read_file,
+    "write_file": write_file,
+    "list_directory": list_directory,
+    "run_shell_command": run_shell_command,
+}
 
 
 class FrontendDeveloperAgent:
     """
-    Autonomous Frontend Engineering Agent.
-    Orchestrates the lifecycle of the ADK agent, tools, and session.
+    Autonomous Frontend Engineering Agent using google-genai.
 
     Features:
     - File system access (read, write, list)
     - Shell command execution (npm, bun, tsc, etc.)
-    - MCP tool integration (stubs for now)
-    - Automatic tool execution via ADK Runner
+    - Automatic tool execution loop
 
     Usage:
         agent = FrontendDeveloperAgent()
@@ -35,114 +44,133 @@ class FrontendDeveloperAgent:
     """
 
     def __init__(self, config: FrontendConfig = default_config):
-        """
-        Initialize the Frontend Developer Agent.
-
-        Args:
-            config: Configuration object (uses default_config if not provided)
-        """
         self.config = config
         self.logger = logging.getLogger("FrontendAgent")
-        self._agent: Optional[Agent] = None
-        self._runner: Optional[Runner] = None
-        self._session_service = InMemorySessionService()
-
+        self._client: Optional[genai.Client] = None
+        self._chat: Optional[Any] = None
         self._initialize()
 
     def _initialize(self) -> None:
-        """Initializes the ADK Agent with strict configuration."""
+        """Initialize the Gemini client."""
         self.logger.info(f"Initializing Frontend Agent with model: {self.config.model_name}")
 
-        self._agent = Agent(
-            name="frontend_developer_pro",
-            model=self.config.model_name,
-            instruction=FRONTEND_DEV_INSTRUCTION,
-            tools=FRONTEND_TOOLS,
-            description="Senior React/TypeScript Engineer with File System access.",
-        )
+        self._client = genai.Client()
 
-        self._runner = Runner(
-            agent=self._agent,
-            app_name=self.config.app_name,
-            session_service=self._session_service,
-        )
+        # Configure tools
+        self._tools = types.Tool(function_declarations=TOOL_DECLARATIONS)
 
         self.logger.info("Frontend Agent initialized successfully")
 
+    def _execute_tool(self, function_call: types.FunctionCall) -> str:
+        """Execute a tool and return the result."""
+        tool_name = function_call.name
+        args = dict(function_call.args) if function_call.args else {}
+
+        self.logger.info(f"Executing tool: {tool_name} with args: {list(args.keys())}")
+
+        if tool_name not in TOOL_MAP:
+            return json.dumps({"error": f"Unknown tool: {tool_name}"})
+
+        try:
+            result = TOOL_MAP[tool_name](**args)
+            return result if isinstance(result, str) else json.dumps(result)
+        except Exception as e:
+            self.logger.error(f"Tool execution error: {e}")
+            return json.dumps({"error": str(e)})
+
     async def run_task(self, user_input: str) -> str:
         """
-        Executes a task end-to-end.
-        Handles the conversation loop and tool execution automatically via ADK Runner.
+        Execute a task with automatic tool execution loop.
 
         Args:
-            user_input: The task instruction in natural language
+            user_input: The task instruction
 
         Returns:
-            Final response from the agent after completing the task
+            Final response from the agent
         """
         self.logger.info(f"Starting task: {user_input[:80]}...")
 
-        # Create or get session
-        session = await self._session_service.create_session(
-            app_name=self.config.app_name,
-            user_id=self.config.user_id,
-            session_id=self.config.session_id,
-        )
+        messages = [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=f"{FRONTEND_DEV_INSTRUCTION}\n\nTask: {user_input}")]
+            )
+        ]
 
-        # Prepare user message
-        content = types.Content(role="user", parts=[types.Part(text=user_input)])
-
-        final_response = ""
         tool_calls_count = 0
 
-        # The ADK Runner handles the "Think -> Call Tool -> Observe -> Answer" loop
-        try:
-            async for event in self._runner.run_async(
-                user_id=self.config.user_id,
-                session_id=self.config.session_id,
-                new_message=content,
-            ):
-                # Capture final response
-                if event.is_final_response():
-                    if event.content and event.content.parts:
-                        final_response = event.content.parts[0].text
+        while tool_calls_count < self.config.max_iterations:
+            try:
+                response = self._client.models.generate_content(
+                    model=self.config.model_name,
+                    contents=messages,
+                    config=types.GenerateContentConfig(
+                        tools=[self._tools],
+                        temperature=0.7,
+                    )
+                )
+            except Exception as e:
+                self.logger.error(f"Generation error: {e}")
+                return f"ERROR: {str(e)}"
 
-                # Log intermediate tool calls for debugging
-                if hasattr(event, "tool_calls") and event.tool_calls:
-                    for tc in event.tool_calls:
-                        tool_calls_count += 1
-                        self.logger.info(f"Tool Call #{tool_calls_count}: {tc.name}")
+            # Check if response has function calls
+            candidate = response.candidates[0] if response.candidates else None
+            if not candidate or not candidate.content:
+                return "No response generated"
 
-                # Safety check: prevent infinite loops
-                if tool_calls_count >= self.config.max_iterations:
-                    self.logger.warning(f"Max iterations ({self.config.max_iterations}) reached. Stopping.")
-                    break
+            content = candidate.content
+            messages.append(content)
 
-        except Exception as e:
-            self.logger.error(f"Critical execution failure: {e}")
-            return f"FATAL ERROR: {str(e)}"
+            # Check for function calls
+            function_calls = []
+            text_parts = []
 
-        self.logger.info(f"Task completed. Tool calls made: {tool_calls_count}")
-        return final_response
+            # Handle case where parts is None
+            parts = content.parts or []
+            for part in parts:
+                if part.function_call:
+                    function_calls.append(part.function_call)
+                elif part.text:
+                    text_parts.append(part.text)
+
+            # If no function calls, we're done
+            if not function_calls:
+                final_text = "\n".join(text_parts)
+                self.logger.info(f"Task completed. Tool calls: {tool_calls_count}")
+                return final_text
+
+            # Execute function calls
+            function_responses = []
+            for fc in function_calls:
+                tool_calls_count += 1
+                self.logger.info(f"Tool call #{tool_calls_count}: {fc.name}")
+                result = self._execute_tool(fc)
+                function_responses.append(
+                    types.Part.from_function_response(
+                        name=fc.name,
+                        response={"result": result}
+                    )
+                )
+
+            # Add function results to conversation
+            messages.append(
+                types.Content(
+                    role="user",
+                    parts=function_responses
+                )
+            )
+
+        self.logger.warning(f"Max iterations ({self.config.max_iterations}) reached")
+        return "Task incomplete: max iterations reached"
 
     async def cleanup(self) -> None:
-        """Cleanup resources (sessions, connections, etc.)."""
-        self.logger.info("Cleaning up Frontend Agent resources")
-        # InMemorySessionService doesn't need explicit cleanup,
-        # but this method is here for future extensions (e.g., persistent sessions)
+        """Cleanup resources."""
+        self.logger.info("Cleaning up Frontend Agent")
 
 
-# Convenience function for quick usage
 async def run_frontend_task(instruction: str, config: Optional[FrontendConfig] = None) -> str:
     """
     Convenience function to run a single frontend task.
-
-    Args:
-        instruction: The task to execute
-        config: Optional configuration (uses default if not provided)
-
-    Returns:
-        Agent's final response
     """
     agent = FrontendDeveloperAgent(config or default_config)
     try:

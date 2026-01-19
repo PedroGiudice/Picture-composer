@@ -199,17 +199,90 @@ def mcp_browser_navigate(url: str) -> str:
 
 
 # =============================================================================
-# EXPORT LIST FOR ADK AGENT
+# TOOL DECLARATIONS FOR google-genai
+# =============================================================================
+
+TOOL_DECLARATIONS = [
+    {
+        "name": "read_file",
+        "description": "Reads the content of a file. Use this to understand code context.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filepath": {
+                    "type": "string",
+                    "description": "Path to the file to read (relative or absolute)"
+                }
+            },
+            "required": ["filepath"]
+        }
+    },
+    {
+        "name": "write_file",
+        "description": "Writes content to a file. Creates directories if they don't exist.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "filepath": {
+                    "type": "string",
+                    "description": "Path where to write the file"
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Content to write to the file"
+                }
+            },
+            "required": ["filepath", "content"]
+        }
+    },
+    {
+        "name": "list_directory",
+        "description": "Lists files in a directory matching a glob pattern.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "directory": {
+                    "type": "string",
+                    "description": "Directory to search in (default: current)",
+                    "default": "."
+                },
+                "pattern": {
+                    "type": "string",
+                    "description": "Glob pattern to match (e.g., '*.tsx', '**/*.ts')",
+                    "default": "*"
+                }
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "run_shell_command",
+        "description": "Executes a shell command (npm, bun, tsc, etc.). Restricted to safe commands.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "description": "Shell command to execute"
+                }
+            },
+            "required": ["command"]
+        }
+    }
+]
+
+# Alias for list_files to match declaration
+def list_directory(directory: str = ".", pattern: str = "*") -> List[str]:
+    """Alias for list_files."""
+    return list_files(directory, pattern)
+
+# =============================================================================
+# EXPORT LIST FOR AGENT
 # =============================================================================
 
 FRONTEND_TOOLS = [
-    # Core File System
     read_file,
     write_file,
-    list_files,
+    list_directory,
     run_shell_command,
-    # MCP Stubs (to be connected later)
-    mcp_magic_component_builder,
-    mcp_playwright_snapshot,
-    mcp_browser_navigate,
 ]
