@@ -9,6 +9,9 @@ import 'package:photo_view/photo_view_gallery.dart';
 import 'package:hotcocoa_flutter/core/theme/app_theme.dart';
 import 'package:hotcocoa_flutter/core/router/app_router.dart';
 import 'package:hotcocoa_flutter/shared/services/storage_service.dart';
+import 'package:hotcocoa_flutter/shared/providers/providers.dart';
+import 'package:hotcocoa_flutter/features/photo_upload/google_credentials_dialog.dart';
+import 'package:hotcocoa_flutter/features/photo_upload/google_photos_picker.dart';
 
 /// Provider para fotos selecionadas
 final selectedPhotosProvider =
@@ -39,6 +42,11 @@ class _PhotoUploadPageState extends ConsumerState<PhotoUploadPage> {
   void initState() {
     super.initState();
     _loadSavedPhotos();
+    _initGoogleService();
+  }
+
+  Future<void> _initGoogleService() async {
+    await ref.read(googleServiceProvider).init();
   }
 
   Future<void> _loadSavedPhotos() async {
@@ -160,6 +168,130 @@ class _PhotoUploadPageState extends ConsumerState<PhotoUploadPage> {
         setState(() {
           _isLoading = false;
           _isDragging = false;
+          _uploadProgress = 0.0;
+          _totalFiles = 0;
+          _processedFiles = 0;
+        });
+      }
+    }
+  }
+
+  Future<void> _openGoogleCredentialsDialog() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => const GoogleCredentialsDialog(),
+    );
+
+    if (result == true && mounted) {
+      // Credenciais salvas, tentar login
+      await _signInWithGoogle();
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    final service = ref.read(googleServiceProvider);
+
+    setState(() => _isLoading = true);
+
+    try {
+      final success = await service.signIn();
+
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login com Google realizado'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Abrir picker de fotos
+        _openGooglePhotosPicker();
+      } else if (mounted && service.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(service.errorMessage!),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _openGooglePhotosPicker() async {
+    final service = ref.read(googleServiceProvider);
+
+    // Verificar se esta autenticado
+    if (!service.isAuthenticated) {
+      // Verificar se tem credenciais
+      final creds = await service.getCredentials();
+      if (creds == null) {
+        // Abrir dialog de credenciais
+        await _openGoogleCredentialsDialog();
+        return;
+      }
+      // Tentar login
+      await _signInWithGoogle();
+      return;
+    }
+
+    // Mostrar picker
+    if (mounted) {
+      await showDialog(
+        context: context,
+        builder: (context) => GooglePhotosPicker(
+          onPhotosSelected: _handleGooglePhotos,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGooglePhotos(List<File> files) async {
+    if (files.isEmpty) return;
+
+    setState(() {
+      _isLoading = true;
+      _processedFiles = 0;
+      _totalFiles = files.length;
+    });
+
+    try {
+      for (int i = 0; i < files.length; i++) {
+        final file = files[i];
+        final metadata = await storageService.savePhoto(file);
+        ref.read(selectedPhotosProvider.notifier).update((state) {
+          return [...state, metadata];
+        });
+
+        setState(() {
+          _processedFiles = i + 1;
+          _uploadProgress = (_processedFiles / _totalFiles);
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${files.length} fotos importadas do Google'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao importar fotos: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
           _uploadProgress = 0.0;
           _totalFiles = 0;
           _processedFiles = 0;
@@ -477,29 +609,47 @@ class _PhotoUploadPageState extends ConsumerState<PhotoUploadPage> {
   }
 
   Widget _buildActionButtons(List<PhotoMetadata> photos) {
-    return Row(
+    final isGoogleAuthenticated = ref.watch(isGoogleAuthenticatedProvider);
+
+    return Column(
       children: [
-        Expanded(
-          child: OutlinedButton.icon(
-            onPressed: _isLoading ? null : _pickPhotos,
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.add_photo_alternate),
-            label: const Text('Adicionar'),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _pickPhotos,
+                icon: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_photo_alternate),
+                label: const Text('Adicionar Local'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _isLoading ? null : _openGooglePhotosPicker,
+                icon: Icon(
+                  isGoogleAuthenticated ? Icons.cloud_done : Icons.cloud,
+                  color: isGoogleAuthenticated ? Colors.green : null,
+                ),
+                label: const Text('Google Photos'),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 16),
-        Expanded(
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
           child: ElevatedButton.icon(
             onPressed: photos.isEmpty
                 ? null
                 : () => context.go(AppRoutes.viewer),
             icon: const Icon(Icons.play_arrow),
-            label: const Text('Iniciar'),
+            label: const Text('Iniciar Sessao'),
           ),
         ),
       ],
