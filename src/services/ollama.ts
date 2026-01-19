@@ -2,10 +2,68 @@
 // Service layer for local Ollama instance on Oracle VM
 // Used for personalization, request triage, and offline fallback
 
-const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || "http://64.181.162.38/api/ollama";
-const OLLAMA_USER = import.meta.env.VITE_OLLAMA_USER || "hotcocoa";
-const OLLAMA_PASS = import.meta.env.VITE_OLLAMA_PASS || "Chicago00@";
+const OLLAMA_URL = import.meta.env.VITE_OLLAMA_URL || '';
+const OLLAMA_USER = import.meta.env.VITE_OLLAMA_USER || '';
+const OLLAMA_PASS = import.meta.env.VITE_OLLAMA_PASS || '';
 const MODEL_NAME = "qwen2.5:7b";
+const FETCH_TIMEOUT_MS = 30000;
+
+// Helper: fetch with timeout
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = FETCH_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+// Helper: safe JSON parse with validation
+interface LLMInsights {
+  likes?: string[];
+  dislikes?: string[];
+  suggestions?: string;
+}
+
+function safeParseInsights(json: string): LLMInsights | null {
+  try {
+    const parsed = JSON.parse(json);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    return {
+      likes: Array.isArray(parsed.likes) ? parsed.likes.filter((x: unknown) => typeof x === 'string') : undefined,
+      dislikes: Array.isArray(parsed.dislikes) ? parsed.dislikes.filter((x: unknown) => typeof x === 'string') : undefined,
+      suggestions: typeof parsed.suggestions === 'string' ? parsed.suggestions : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+interface ChallengeResponse {
+  title?: string;
+  instruction?: string;
+  rationale?: string;
+}
+
+function safeParseChallengeResponse(json: string): ChallengeResponse | null {
+  try {
+    const parsed = JSON.parse(json);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    return {
+      title: typeof parsed.title === 'string' ? parsed.title : undefined,
+      instruction: typeof parsed.instruction === 'string' ? parsed.instruction : undefined,
+      rationale: typeof parsed.rationale === 'string' ? parsed.rationale : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
 
 // Types for Ollama API
 interface OllamaGenerateRequest {
@@ -56,14 +114,22 @@ export class OllamaService {
    * Check if Ollama is reachable
    */
   static async healthCheck(): Promise<boolean> {
+    if (!OLLAMA_URL) return false;
     try {
-      const response = await fetch(`${OLLAMA_URL}/api/tags`, {
+      const response = await fetchWithTimeout(`${OLLAMA_URL}/api/tags`, {
         headers: { Authorization: this.authHeader() },
-      });
+      }, 5000);
       return response.ok;
     } catch {
       return false;
     }
+  }
+
+  /**
+   * Alias for healthCheck - check if Ollama service is available
+   */
+  static async isAvailable(): Promise<boolean> {
+    return this.healthCheck();
   }
 
   /**
@@ -87,7 +153,10 @@ export class OllamaService {
       },
     };
 
-    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+    if (!OLLAMA_URL) {
+      throw new Error('OLLAMA_URL not configured');
+    }
+    const response = await fetchWithTimeout(`${OLLAMA_URL}/api/generate`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -164,16 +233,16 @@ Retorne apenas JSON com campos: "likes" (array), "dislikes" (array), "suggestion
           "Voce e um assistente que analisa feedback de casais. Seja discreto e respeitoso."
         );
 
-        // Parse and merge insights
-        try {
-          const insights = JSON.parse(analysis);
+        // Parse and merge insights with validation
+        const insights = safeParseInsights(analysis);
+        if (insights) {
           if (insights.likes) {
             prefs.preferredChallengeTypes.push(...insights.likes);
           }
           if (insights.dislikes) {
             prefs.avoidTopics.push(...insights.dislikes);
           }
-        } catch {
+        } else {
           // If parsing fails, just add notes to context
           prefs.customContext += `\n${notes}`;
         }
@@ -290,10 +359,17 @@ Seja criativo mas respeitoso. Foque em conexao emocional e fisica.`;
         "Voce e um terapeuta de casais especializado em intimidade. Seja discreto, respeitoso e criativo."
       );
 
-      // Parse JSON from response
+      // Parse JSON from response with validation
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+        const parsed = safeParseChallengeResponse(jsonMatch[0]);
+        if (parsed && parsed.title && parsed.instruction && parsed.rationale) {
+          return {
+            title: parsed.title,
+            instruction: parsed.instruction,
+            rationale: parsed.rationale,
+          };
+        }
       }
     } catch (err) {
       console.error("Fallback generation failed:", err);

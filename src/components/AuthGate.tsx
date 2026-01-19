@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CREDENTIALS = {
-  user: 'CMR',
-  pass: 'Chicago00@'
+  user: import.meta.env.VITE_AUTH_USER || 'CMR',
+  pass: import.meta.env.VITE_AUTH_PASS || ''
 };
 
 interface AuthProps {
