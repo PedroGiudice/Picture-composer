@@ -1,22 +1,31 @@
 /// API endpoints and constants
 abstract class ApiConstants {
-  /// Modal.com backend URL for intimacy processing
+  /// Modal.com backend URL for intimacy processing (A100 Qwen2.5-VL + 72B)
   static const String backendUrl = String.fromEnvironment(
     'BACKEND_URL',
-    defaultValue: 'https://pedrogiudice--picture-composer-v2-process-intimacy-request.modal.run',
+    defaultValue: 'https://pedrogiudice--picture-composer-backend-a100-process-intimacy-request.modal.run',
   );
 
-  /// Modal.com backend URL for mosaic analysis
+  /// Modal.com backend URL for mosaic analysis (A100 Qwen2.5-VL)
   static const String mosaicUrl = String.fromEnvironment(
     'MOSAIC_URL',
-    defaultValue: 'https://pedrogiudice--picture-composer-v2-process-mosaic-request.modal.run',
+    defaultValue: 'https://pedrogiudice--picture-composer-backend-a100-process-mosaic-request.modal.run',
   );
 
-  /// Request timeout in milliseconds
+  /// Request timeout in milliseconds (60s para modelos grandes)
   static const int requestTimeout = 60000;
 
-  /// Connection timeout in milliseconds
+  /// Connection timeout in milliseconds (15s)
   static const int connectTimeout = 15000;
+
+  /// Numero maximo de tentativas de retry
+  static const int maxRetries = 3;
+
+  /// Delay base para backoff exponencial (1s)
+  static const int baseRetryDelayMs = 1000;
+
+  /// Cache TTL em segundos (1 hora)
+  static const int cacheTtlSeconds = 3600;
 }
 
 /// Romantic questions for the intimacy experience

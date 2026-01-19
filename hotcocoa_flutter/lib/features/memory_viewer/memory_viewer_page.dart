@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hotcocoa_flutter/core/theme/app_theme.dart';
@@ -55,26 +56,45 @@ class _MemoryViewerPageState extends ConsumerState<MemoryViewerPage> {
     // Switch to processing state
     ref.read(viewerStateProvider.notifier).state = ViewerState.processing;
 
-    // Call API
-    final response = await apiServiceProvider.processSession(
-      imageUrl: currentPhoto.path,
-      heatLevel: heatLevel,
-    );
+    try {
+      // Criar File a partir do path
+      final imageFile = File(currentPhoto.path);
 
-    ref.read(intimacyResponseProvider.notifier).state = response;
+      // Call API - agora com File em vez de imageUrl
+      final response = await apiServiceProvider.processSession(
+        imageFile: imageFile,
+        heatLevel: heatLevel,
+      );
 
-    // Switch to reveal state
-    ref.read(viewerStateProvider.notifier).state = ViewerState.reveal;
+      ref.read(intimacyResponseProvider.notifier).state = response;
 
-    // Start countdown timer
-    _revealCountdown = response.durationSec;
-    _revealTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_revealCountdown > 0) {
-        setState(() => _revealCountdown--);
-      } else {
-        timer.cancel();
+      // Switch to reveal state
+      ref.read(viewerStateProvider.notifier).state = ViewerState.reveal;
+
+      // Start countdown timer
+      _revealCountdown = response.durationSec;
+      _revealTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_revealCountdown > 0) {
+          setState(() => _revealCountdown--);
+        } else {
+          timer.cancel();
+        }
+      });
+    } catch (e) {
+      print('[MemoryViewer] Erro ao processar experiencia: $e');
+      // Em caso de erro, voltar para setup
+      ref.read(viewerStateProvider.notifier).state = ViewerState.setup;
+
+      // Mostrar snackbar de erro
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao processar imagem: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
       }
-    });
+    }
   }
 
   void _nextPhoto() {
