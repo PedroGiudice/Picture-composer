@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/theme_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/router/app_router.dart';
+import 'motion_background/motion_background.dart';
 
 /// Main app shell with navigation
 class AppShell extends ConsumerWidget {
@@ -69,7 +70,15 @@ class AppShell extends ConsumerWidget {
           ),
         ],
       ),
-      body: child,
+      body: MotionBackground(
+        particleCount: 25,
+        particleSpeed: 0.2,
+        minRadius: 1.5,
+        maxRadius: 3.5,
+        minOpacity: 0.03,
+        maxOpacity: 0.12,
+        child: child,
+      ),
     );
   }
 

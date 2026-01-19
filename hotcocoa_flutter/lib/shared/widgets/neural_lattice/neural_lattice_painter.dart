@@ -142,9 +142,16 @@ class NeuralLatticePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(NeuralLatticePainter oldDelegate) {
-    return oldDelegate.time != time ||
-        oldDelegate.mousePosition != mousePosition;
+    // Otimizacao: so repaint se houver mudanca significativa
+    final timeChanged = (time - oldDelegate.time).abs() > 0.016; // ~1 frame a 60fps
+
+    final mouseChanged = mousePosition != oldDelegate.mousePosition;
+
+    return timeChanged || mouseChanged;
   }
+
+  @override
+  bool shouldRebuildSemantics(NeuralLatticePainter oldDelegate) => false;
 }
 
 /// Neural Lattice Widget - animated golden spiral
@@ -199,26 +206,29 @@ class _NeuralLatticeWidgetState extends State<NeuralLatticeWidget>
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        MouseRegion(
-          onHover: _handleHover,
-          onExit: _handleExit,
-          child: SizedBox(
-            width: widget.size,
-            height: widget.size,
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                // Convert animation value (0-1) to time
-                final time = _controller.value * 60;
-                return CustomPaint(
-                  painter: NeuralLatticePainter(
-                    time: time,
-                    mousePosition: _mousePosition,
-                    canvasSize: Size(widget.size, widget.size),
-                  ),
-                  size: Size(widget.size, widget.size),
-                );
-              },
+        // RepaintBoundary isola repaints do canvas, melhorando performance
+        RepaintBoundary(
+          child: MouseRegion(
+            onHover: _handleHover,
+            onExit: _handleExit,
+            child: SizedBox(
+              width: widget.size,
+              height: widget.size,
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, child) {
+                  // Convert animation value (0-1) to time
+                  final time = _controller.value * 60;
+                  return CustomPaint(
+                    painter: NeuralLatticePainter(
+                      time: time,
+                      mousePosition: _mousePosition,
+                      canvasSize: Size(widget.size, widget.size),
+                    ),
+                    size: Size(widget.size, widget.size),
+                  );
+                },
+              ),
             ),
           ),
         ),

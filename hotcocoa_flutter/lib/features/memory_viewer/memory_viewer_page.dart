@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/neural_lattice/neural_lattice_painter.dart';
-import '../../shared/widgets/heat_slider/heat_slider.dart';
-import '../../shared/services/api_service.dart';
-import '../../shared/services/storage_service.dart';
-import '../photo_upload/photo_upload_page.dart';
+import 'package:hotcocoa_flutter/core/theme/app_theme.dart';
+import 'package:hotcocoa_flutter/shared/widgets/neural_lattice/neural_lattice_painter.dart';
+import 'package:hotcocoa_flutter/shared/widgets/heat_slider/heat_slider.dart';
+import 'package:hotcocoa_flutter/shared/services/api_service.dart';
+import 'package:hotcocoa_flutter/shared/services/storage_service.dart';
+import 'package:hotcocoa_flutter/features/photo_upload/photo_upload_page.dart';
 
 /// Memory viewer states
 enum ViewerState { setup, processing, reveal }
@@ -57,7 +57,7 @@ class _MemoryViewerPageState extends ConsumerState<MemoryViewerPage> {
 
     // Call API
     final response = await apiServiceProvider.processSession(
-      imageUrl: currentPhoto,
+      imageUrl: currentPhoto.path,
       heatLevel: heatLevel,
     );
 

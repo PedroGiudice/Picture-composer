@@ -2,13 +2,14 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
 
-/// Floating card with subtle motion animation
+/// Floating card with subtle motion animation and hover effects
 class FloatingCard extends StatefulWidget {
   final Widget child;
   final double floatAmount;
   final Duration duration;
   final EdgeInsets padding;
   final BorderRadius? borderRadius;
+  final bool enableHover;
 
   const FloatingCard({
     super.key,
@@ -17,6 +18,7 @@ class FloatingCard extends StatefulWidget {
     this.duration = const Duration(seconds: 3),
     this.padding = const EdgeInsets.all(20),
     this.borderRadius,
+    this.enableHover = true,
   });
 
   @override
@@ -26,6 +28,7 @@ class FloatingCard extends StatefulWidget {
 class _FloatingCardState extends State<FloatingCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  bool _isHovered = false;
 
   @override
   void initState() {
@@ -42,43 +45,76 @@ class _FloatingCardState extends State<FloatingCard>
     super.dispose();
   }
 
+  void _handleHover(bool isHovered) {
+    if (!widget.enableHover) return;
+    setState(() {
+      _isHovered = isHovered;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final borderRadius = widget.borderRadius ?? BorderRadius.circular(16);
+    final primaryColor = Theme.of(context).colorScheme.primary;
 
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) {
-        final progress = _controller.value;
-        final yOffset = math.sin(progress * 2 * math.pi) * widget.floatAmount;
-        final rotation = math.sin(progress * 2 * math.pi) * 0.01;
+    return MouseRegion(
+      onEnter: (_) => _handleHover(true),
+      onExit: (_) => _handleHover(false),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          final progress = _controller.value;
+          final yOffset = math.sin(progress * 2 * math.pi) * widget.floatAmount;
+          final rotation = math.sin(progress * 2 * math.pi) * 0.01;
 
-        return Transform.translate(
-          offset: Offset(0, yOffset),
-          child: Transform.rotate(
-            angle: rotation,
-            child: Container(
-              padding: widget.padding,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: borderRadius,
-                border: Border.all(
-                  color: AppColors.white10,
-                  width: 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    blurRadius: 20,
-                    offset: Offset(0, 10 + yOffset / 2),
+          // Animacao de elevacao no hover
+          final hoverElevation = _isHovered ? 12.0 : 0.0;
+          final hoverScale = _isHovered ? 1.02 : 1.0;
+
+          return AnimatedScale(
+            scale: hoverScale,
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            child: Transform.translate(
+              offset: Offset(0, yOffset - hoverElevation),
+              child: Transform.rotate(
+                angle: rotation,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  padding: widget.padding,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: borderRadius,
+                    border: Border.all(
+                      color: _isHovered
+                          ? primaryColor.withOpacity(0.3)
+                          : AppColors.white10,
+                      width: _isHovered ? 1.5 : 1,
+                    ),
+                    boxShadow: [
+                      // Sombra principal
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: _isHovered ? 30 : 20,
+                        offset: Offset(0, 10 + yOffset / 2),
+                      ),
+                      // Glow effect no hover
+                      if (_isHovered)
+                        BoxShadow(
+                          color: primaryColor.withOpacity(0.2),
+                          blurRadius: 40,
+                          spreadRadius: 2,
+                        ),
+                    ],
                   ),
-                ],
+                  child: widget.child,
+                ),
               ),
-              child: widget.child,
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
