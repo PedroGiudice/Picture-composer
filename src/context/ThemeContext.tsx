@@ -42,16 +42,18 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const handleSetMode = (newMode: IntimacyMode) => {
     setMode(newMode);
-    // Update CSS variables specifically for the mode
+    // Update CSS variables specifically for the mode - Deep Dark palette
     const root = document.documentElement;
     if (newMode === 'HOT') {
-      root.style.setProperty('--color-primary', '#e11d48'); // Rose-600
-      root.style.setProperty('--color-bg', '#4c0519');      // Warm-950
-      root.style.setProperty('--color-accent', '#ea580c');  // Orange-600
+      root.style.setProperty('--color-primary', '#e11d48');
+      root.style.setProperty('--color-bg', '#0a0506');      // DEEP void
+      root.style.setProperty('--color-accent', '#c2410c');
+      root.style.setProperty('--color-surface', '#1f0f12');
     } else {
-      root.style.setProperty('--color-primary', '#db2777'); // Pink-600
-      root.style.setProperty('--color-bg', '#831843');      // Pink-900 (lighter)
-      root.style.setProperty('--color-accent', '#f59e0b');  // Amber-500
+      root.style.setProperty('--color-primary', '#db2777');
+      root.style.setProperty('--color-bg', '#0f0508');      // DEEP pink-void
+      root.style.setProperty('--color-accent', '#d97706');
+      root.style.setProperty('--color-surface', '#1a0a10');
     }
   };
 
