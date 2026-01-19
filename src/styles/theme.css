@@ -1,0 +1,43 @@
+/* src/styles/theme.css */
+:root {
+  /* Deep Dark Base - Tons de vinho/brique */
+  --bg-void: #0a0506;        /* Quase preto com tom vinho */
+  --bg-deep: #150a0c;        /* Vinho profundo */
+  --bg-surface: #1f0f12;     /* Surface elevada */
+  --bg-elevated: #2a1418;    /* Cards flutuantes */
+
+  /* Accent Colors */
+  --accent-rose: #e11d48;
+  --accent-wine: #881337;
+  --accent-ember: #c2410c;
+  --accent-gold: #d97706;
+
+  /* Text */
+  --text-primary: #fecdd3;   /* Rose-200 */
+  --text-muted: #9f1239;     /* Rose-800 */
+  --text-dim: rgba(254, 205, 211, 0.4);
+
+  /* Glow Effects */
+  --glow-rose: 0 0 40px rgba(225, 29, 72, 0.3);
+  --glow-ember: 0 0 60px rgba(194, 65, 12, 0.2);
+}
+
+/* Floating card effect */
+.floating-card {
+  background: linear-gradient(145deg, var(--bg-elevated), var(--bg-surface));
+  border: 1px solid rgba(225, 29, 72, 0.1);
+  box-shadow:
+    var(--glow-rose),
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+}
+
+/* Hover state for floating cards */
+.floating-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    var(--glow-rose),
+    0 30px 60px -15px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}

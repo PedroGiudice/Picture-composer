@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CSS Variables for theme */
+:root {
+  --bg-void: #0a0506;
+  --bg-deep: #150a0c;
+  --bg-surface: #1f0f12;
+  --bg-elevated: #2a1418;
+  --accent-rose: #e11d48;
+  --accent-wine: #881337;
+  --accent-ember: #c2410c;
+  --accent-gold: #d97706;
+  --text-primary: #fecdd3;
+  --text-muted: #9f1239;
+  --text-dim: rgba(254, 205, 211, 0.4);
+  --glow-rose: 0 0 40px rgba(225, 29, 72, 0.3);
+  --glow-ember: 0 0 60px rgba(194, 65, 12, 0.2);
+}
+
+/* Floating card style */
+.floating-card {
+  background: linear-gradient(145deg, var(--bg-elevated), var(--bg-surface));
+  border: 1px solid rgba(225, 29, 72, 0.1);
+  box-shadow: var(--glow-rose), 0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px rgba(255, 255, 255, 0.05);
+  border-radius: 24px;
+}
+
+.floating-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glow-rose), 0 30px 60px -15px rgba(0, 0, 0, 0.6), inset 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* Custom scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #881337;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #be123c;
+}
+
+/* Base body styling */
+body {
+  font-family: 'Space Mono', monospace;
+}

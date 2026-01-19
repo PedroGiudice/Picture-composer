@@ -1,11 +1,12 @@
 // src/components/MemoryViewer.tsx
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Play, Settings2, Info } from 'lucide-react';
+import { RefreshCw, Play, Settings2, Info, AlertTriangle, X } from 'lucide-react';
 import { Button } from './Button';
 import { SomaticLoader } from './ui/SomaticLoader';
 import { HeatSlider } from './ui/HeatSlider';
 import { SomaticBackend, IntimacyResponse } from '../services/api';
+import { OllamaService } from '../services/ollama';
 
 interface MemoryViewerProps {
   files: File[];
@@ -20,6 +21,7 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
   const [viewState, setViewState] = useState<'SETUP' | 'PROCESSING' | 'REVEAL'>('SETUP');
   const [heatLevel, setHeatLevel] = useState(1);
   const [result, setResult] = useState<IntimacyResponse | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Load random file on mount or reset
   useEffect(() => {
@@ -28,28 +30,72 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
       setCurrentFile(random);
       const url = URL.createObjectURL(random);
       setPhotoUrl(url);
-      return () => URL.revokeObjectURL(url);
     }
   }, [files, currentFile]);
 
+  // Cleanup: revogar URL ao desmontar componente
+  useEffect(() => {
+    return () => {
+      if (photoUrl) {
+        URL.revokeObjectURL(photoUrl);
+      }
+    };
+  }, [photoUrl]);
+
   const handleProcess = async () => {
     if (!photoUrl) return;
+    setErrorMessage(null); // Limpar erro anterior
     setViewState('PROCESSING');
-    
-    // Artificial delay for dramatic effect + Backend call
+
     try {
-      // In a real app, we'd upload the file here or assume it's accessible
+      // Tenta Modal primeiro
       const data = await SomaticBackend.processSession(photoUrl, heatLevel);
-      setResult(data);
+
+      // Se retornou erro no campo, usa fallback
+      if (data.error) {
+        console.warn('Modal falhou, usando Ollama fallback');
+        const fallback = await OllamaService.generateFallbackChallenge(heatLevel);
+        setResult({
+          instruction_title_pt_br: fallback.title,
+          instruction_text_pt_br: fallback.instruction,
+          clinical_rationale_pt_br: fallback.rationale,
+          intensity_metric: heatLevel,
+          duration_sec: 120,
+          error: 'Usando Ollama local'
+        });
+      } else {
+        setResult(data);
+      }
       setViewState('REVEAL');
     } catch (e) {
-      console.error(e);
-      // Handle error visually?
-      setViewState('SETUP');
+      console.error('Modal error, trying Ollama:', e);
+
+      // Fallback para Ollama
+      try {
+        const fallback = await OllamaService.generateFallbackChallenge(heatLevel);
+        setResult({
+          instruction_title_pt_br: fallback.title,
+          instruction_text_pt_br: fallback.instruction,
+          clinical_rationale_pt_br: fallback.rationale,
+          intensity_metric: heatLevel,
+          duration_sec: 120,
+          error: 'Usando Ollama local'
+        });
+        setViewState('REVEAL');
+      } catch (ollamaError) {
+        console.error('Ollama also failed:', ollamaError);
+        setErrorMessage('Nao foi possivel conectar aos servidores. Verifique sua conexao e tente novamente.');
+        setViewState('SETUP');
+      }
     }
   };
 
   const nextSession = () => {
+    // Revogar URL anterior para evitar memory leak
+    if (photoUrl) {
+      URL.revokeObjectURL(photoUrl);
+    }
+
     const random = files[Math.floor(Math.random() * files.length)];
     setCurrentFile(random);
     const url = URL.createObjectURL(random);
@@ -101,8 +147,32 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
 
       {/* RIGHT COLUMN: CONTROL & REVELATION */}
       <div className="w-full md:w-1/2 space-y-8 relative min-h-[400px] flex flex-col justify-center">
+
+        {/* Error Banner */}
+        <AnimatePresence>
+          {errorMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: 'auto' }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg flex items-start gap-3"
+            >
+              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-red-300 text-sm">{errorMessage}</p>
+              </div>
+              <button
+                onClick={() => setErrorMessage(null)}
+                className="text-red-400 hover:text-red-300 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <AnimatePresence mode="wait">
-          
+
           {/* STATE: SETUP */}
           {viewState === 'SETUP' && (
             <motion.div
@@ -174,6 +244,11 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
                     <p className="text-xs text-warm-300 leading-relaxed font-mono">
                       {result.clinical_rationale_pt_br}
                     </p>
+                    {result?.error && (
+                      <div className="mt-2 text-[9px] text-amber-500/60 uppercase tracking-wider">
+                        Modo Offline (Ollama)
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

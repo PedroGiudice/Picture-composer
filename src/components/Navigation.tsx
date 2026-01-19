@@ -1,16 +1,18 @@
 // src/components/Navigation.tsx
 import React from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Menu, Grid, Play, History, ChevronDown } from 'lucide-react';
+import { Menu, Grid, Play, History, ChevronDown, MessageCircle } from 'lucide-react';
 import { ConfigPanel } from './ConfigPanel';
 import { useTheme } from '../context/ThemeContext';
+import { AppState } from '../types';
 
 interface NavigationProps {
-  onNavigate: (view: any) => void; // Using any for simplicity in refactor step
-  currentView: string;
+  onNavigate: (view: AppState) => void;
+  currentView: AppState | string;
+  onChatToggle?: () => void;
 }
 
-export const Navigation: React.FC<NavigationProps> = ({ onNavigate, currentView }) => {
+export const Navigation: React.FC<NavigationProps> = ({ onNavigate, currentView, onChatToggle }) => {
   const { mode } = useTheme();
 
   return (
@@ -76,6 +78,16 @@ export const Navigation: React.FC<NavigationProps> = ({ onNavigate, currentView 
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
+
+          {onChatToggle && (
+            <button
+              onClick={onChatToggle}
+              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+              title="Chat com Assistente"
+            >
+              <MessageCircle size={20} style={{ color: 'var(--accent-rose)' }} />
+            </button>
+          )}
 
           <div className="w-px h-6 bg-white/10 mx-1" />
 

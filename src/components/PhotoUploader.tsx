@@ -1,7 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, X, Cloud, Loader2, Settings, AlertCircle, FolderOpen } from 'lucide-react';
+import { Upload, Image as ImageIcon, X, Cloud, Loader2, Settings, FolderOpen } from 'lucide-react';
 import { Button } from './Button';
-import { loadGoogleApi, openPicker, getCredentials, saveCredentials, clearCredentials } from '../utils/googleIntegration';
+import { ConfigModal } from './ConfigModal';
+import { FloatingCard } from './ui/FloatingCard';
+import { loadGoogleApi, openPicker, getCredentials } from '../utils/googleIntegration';
 import { isTauri, listLocalPhotos, savePhotoLocally, getPhotoAsBase64, fileToBase64, getPhotosPath } from '../services/tauri';
 
 interface FilePreviewProps {
@@ -33,105 +35,6 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => {
       >
         <X className="w-3 h-3" />
       </button>
-    </div>
-  );
-};
-
-interface ConfigModalProps {
-  onClose: () => void;
-  onSave: () => void;
-}
-
-const ConfigModal: React.FC<ConfigModalProps> = ({ onClose, onSave }) => {
-  const [clientId, setClientId] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  
-  useEffect(() => {
-    const creds = getCredentials();
-    if (creds) {
-      setClientId(creds.clientId);
-      setApiKey(creds.apiKey);
-    }
-  }, []);
-
-  const handleSave = () => {
-    if (clientId && apiKey) {
-      saveCredentials(clientId.trim(), apiKey.trim());
-      onSave();
-    }
-  };
-
-  const handleClear = () => {
-    clearCredentials();
-    setClientId('');
-    setApiKey('');
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
-      <div className="bg-slate-900 border border-slate-700 w-full max-w-lg shadow-2xl relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-slate-500 hover:text-white">
-          <X className="w-5 h-5" />
-        </button>
-        
-        <div className="p-8 space-y-6">
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold text-white font-space-grotesk flex items-center gap-2">
-              <Settings className="w-5 h-5 text-rose-500" />
-              API Configuration
-            </h3>
-            <p className="text-sm text-slate-400">
-              To access your Google Photos/Drive, you must provide your own Google Cloud Client ID and API Key.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Client ID</label>
-              <input 
-                type="text" 
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                placeholder="000000000-xxxx.apps.googleusercontent.com"
-                className="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 text-slate-200 p-3 text-sm outline-none transition-colors"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">API Key</label>
-              <input 
-                type="text" 
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="AIzaSy..."
-                className="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 text-slate-200 p-3 text-sm outline-none transition-colors"
-              />
-            </div>
-            
-            <div className="bg-slate-800/50 p-4 border border-slate-800 text-xs text-slate-400 space-y-2">
-              <p className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <span>Ensure your Google Cloud Project has the <strong>Google Picker API</strong> enabled.</span>
-              </p>
-              <p className="flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-                <span>Add <strong>{window.location.origin}</strong> to "Authorized JavaScript origins" in your OAuth Client settings.</span>
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-4 pt-2">
-            <Button onClick={handleSave} className="flex-1" disabled={!clientId || !apiKey}>
-              Save Credentials
-            </Button>
-            {getCredentials() && (
-               <Button variant="secondary" onClick={handleClear} className="flex-none">
-                 Clear
-               </Button>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
@@ -256,17 +159,14 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
   return (
     <div className="w-full max-w-3xl mx-auto space-y-8 animate-fade-in relative">
-      {showConfig && (
-        <ConfigModal 
-          onClose={() => setShowConfig(false)} 
-          onSave={() => {
-            setHasCreds(true);
-            setShowConfig(false);
-            // Optionally try to trigger open picker immediately? 
-            // Better to let user click again to be safe.
-          }} 
-        />
-      )}
+      <ConfigModal
+        isOpen={showConfig}
+        onClose={() => setShowConfig(false)}
+        onSave={() => {
+          setHasCreds(true);
+          setShowConfig(false);
+        }}
+      />
 
       <div className="text-center space-y-4">
         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
@@ -289,50 +189,61 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div 
-          className="border-2 border-dashed border-slate-700 hover:border-rose-500/50 transition-colors p-8 flex flex-col items-center justify-center gap-4 bg-slate-900/50 cursor-pointer h-48"
-          onClick={triggerUpload}
-        >
-          <div className="p-3 bg-slate-800 text-rose-500">
-            <Upload className="w-6 h-6" />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+        <FloatingCard delay={0.1} className="cursor-pointer group" onClick={triggerUpload}>
+          <div className="text-center py-8">
+            <Upload className="mx-auto mb-4" size={48} style={{ color: 'var(--accent-rose)' }} />
+            <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+              Upload do Dispositivo
+            </h3>
+            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+              JPG, PNG, WebP (max 10MB)
+            </p>
           </div>
-          <div className="text-center">
-            <p className="font-medium text-slate-200">Upload do Dispositivo</p>
-            <p className="text-xs text-slate-500 mt-1">JPG, PNG Suportados</p>
-          </div>
-          <input 
-            type="file" 
+          <input
+            type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
             multiple
             accept="image/*"
             className="hidden"
           />
-        </div>
+        </FloatingCard>
 
-        <div className="relative group">
-           <div 
-            className={`border-2 border-dashed border-slate-700 transition-colors p-8 flex flex-col items-center justify-center gap-4 bg-slate-900/50 h-48 w-full ${googleReady ? 'hover:border-blue-500/50 cursor-pointer' : 'opacity-70 cursor-wait'}`}
+        <div className="relative">
+          <FloatingCard
+            delay={0.2}
+            className={`cursor-pointer group ${!googleReady ? 'opacity-70' : ''}`}
             onClick={handleGoogleClick}
           >
-             <div className="p-3 bg-slate-800 text-blue-500 group-hover:text-blue-400 transition-colors">
-              {isGoogleLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Cloud className="w-6 h-6" />}
+            <div className="text-center py-8">
+              {isGoogleLoading ? (
+                <Loader2 className="mx-auto mb-4 animate-spin" size={48} style={{ color: 'var(--accent-ember)' }} />
+              ) : (
+                <Cloud className="mx-auto mb-4" size={48} style={{ color: 'var(--accent-ember)' }} />
+              )}
+              <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                Google Drive & Photos
+              </h3>
+              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
+                Conectar ao cloud
+              </p>
+              {!googleReady && (
+                <p className="text-[10px] mt-2" style={{ color: 'var(--text-dim)' }}>
+                  Loading libraries...
+                </p>
+              )}
             </div>
-            <div className="text-center">
-              <p className="font-medium text-slate-200">Google Drive & Photos</p>
-              <p className="text-xs text-slate-500 mt-1">Importar da nuvem</p>
-            </div>
-            {!googleReady && (
-              <div className="absolute bottom-2 text-[10px] text-slate-600">Loading libraries...</div>
-            )}
-          </div>
-          <button 
+          </FloatingCard>
+          <button
             onClick={(e) => { e.stopPropagation(); setShowConfig(true); }}
-            className="absolute top-2 right-2 p-2 text-slate-600 hover:text-white transition-colors z-10"
+            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/5 transition-colors z-10"
             title="Configure API Keys"
           >
-            <Settings className={`w-4 h-4 ${hasCreds ? 'text-green-500' : 'text-slate-600'}`} />
+            <Settings
+              className="w-4 h-4"
+              style={{ color: hasCreds ? '#22c55e' : 'var(--text-muted)' }}
+            />
           </button>
         </div>
       </div>
