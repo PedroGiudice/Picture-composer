@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f0f1a"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="108" fill="url(#bg)"/>
+
+  <!-- Outer ring (breathing effect - static representation) -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#f43f5e" stroke-width="4" stroke-opacity="0.2"/>
+
+  <!-- Middle ring (rotating - shown at angle) -->
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#f43f5e" stroke-width="6" stroke-opacity="0.5"
+          stroke-dasharray="220 660" stroke-linecap="round"/>
+
+  <!-- Second arc for visual interest -->
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#f43f5e" stroke-width="6" stroke-opacity="0.3"
+          stroke-dasharray="110 770" stroke-dashoffset="440" stroke-linecap="round"/>
+
+  <!-- Inner ring -->
+  <circle cx="256" cy="256" r="100" fill="none" stroke="#f43f5e" stroke-width="3" stroke-opacity="0.4"/>
+
+  <!-- Core glow -->
+  <circle cx="256" cy="256" r="60" fill="url(#glow)"/>
+
+  <!-- Core solid -->
+  <circle cx="256" cy="256" r="32" fill="#f43f5e"/>
+
+  <!-- Core highlight -->
+  <circle cx="248" cy="248" r="12" fill="#fb7185" fill-opacity="0.6"/>
+</svg>
