@@ -20,7 +20,10 @@ async function loadStore(): Promise<TauriStore | null> {
 
   try {
     const { load } = await import('@tauri-apps/plugin-store');
-    storeInstance = await load('app-settings.json', { autoSave: 100 });
+    storeInstance = await load('app-settings.json', {
+      defaults: {},
+      autoSave: 100
+    });
     return storeInstance;
   } catch (error) {
     console.error('Failed to load Tauri store:', error);

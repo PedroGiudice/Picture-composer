@@ -56,11 +56,11 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
         console.warn('Modal falhou, usando Ollama fallback');
         const fallback = await OllamaService.generateFallbackChallenge(heatLevel);
         setResult({
-          instruction_title_pt_br: fallback.title,
-          instruction_text_pt_br: fallback.instruction,
-          clinical_rationale_pt_br: fallback.rationale,
-          intensity_metric: heatLevel,
-          duration_sec: 120,
+          challenge_title: fallback.title,
+          challenge_text: fallback.instruction,
+          rationale: fallback.rationale,
+          intensity: heatLevel,
+          duration_seconds: 120,
           error: 'Usando Ollama local'
         });
       } else {
@@ -74,11 +74,11 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
       try {
         const fallback = await OllamaService.generateFallbackChallenge(heatLevel);
         setResult({
-          instruction_title_pt_br: fallback.title,
-          instruction_text_pt_br: fallback.instruction,
-          clinical_rationale_pt_br: fallback.rationale,
-          intensity_metric: heatLevel,
-          duration_sec: 120,
+          challenge_title: fallback.title,
+          challenge_text: fallback.instruction,
+          rationale: fallback.rationale,
+          intensity: heatLevel,
+          duration_seconds: 120,
           error: 'Usando Ollama local'
         });
         setViewState('REVEAL');
@@ -230,11 +230,11 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
               {/* Clinical Card */}
               <div className="relative p-8 border-l-4 border-rose-600 bg-gradient-to-r from-warm-900/40 to-transparent backdrop-blur-md">
                 <div className="absolute -top-3 left-6 px-2 bg-warm-950 text-rose-500 text-xs font-bold uppercase tracking-widest">
-                  {result.instruction_title_pt_br}
+                  {result.challenge_title}
                 </div>
-                
+
                 <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight font-serif italic mb-6">
-                  "{result.instruction_text_pt_br}"
+                  "{result.challenge_text}"
                 </h3>
 
                 <div className="flex items-start gap-3 mt-8 pt-6 border-t border-white/5">
@@ -242,7 +242,7 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
                   <div className="space-y-1">
                     <p className="text-[10px] uppercase text-warm-500 font-bold tracking-widest">Clinical Rationale</p>
                     <p className="text-xs text-warm-300 leading-relaxed font-mono">
-                      {result.clinical_rationale_pt_br}
+                      {result.rationale}
                     </p>
                     {result?.error && (
                       <div className="mt-2 text-[9px] text-amber-500/60 uppercase tracking-wider">
@@ -257,11 +257,11 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
               <div className="grid grid-cols-2 gap-4">
                  <div className="p-4 bg-slate-900/50 border border-slate-800 rounded text-center">
                    <p className="text-[10px] text-slate-500 uppercase">Duration</p>
-                   <p className="text-xl font-bold text-white">{result.duration_sec}s</p>
+                   <p className="text-xl font-bold text-white">{result.duration_seconds}s</p>
                  </div>
                  <div className="p-4 bg-slate-900/50 border border-slate-800 rounded text-center">
                    <p className="text-[10px] text-slate-500 uppercase">Intensity</p>
-                   <p className="text-xl font-bold text-rose-500">{result.intensity_metric}/10</p>
+                   <p className="text-xl font-bold text-rose-500">{result.intensity}/10</p>
                  </div>
               </div>
 

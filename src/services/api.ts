@@ -2,22 +2,22 @@
 // Service layer handling communication with the Modal.com Backend
 // Backend v2: JoyCaption (VLM) + Midnight Rose AWQ (LLM)
 
-const BACKEND_URL = import.meta.env.VITE_MODAL_BACKEND_URL || "https://pedrogiudice--picture-composer-v2-process-intimacy-request.modal.run";
-const MOSAIC_BACKEND_URL = import.meta.env.VITE_MODAL_MOSAIC_URL || "https://pedrogiudice--picture-composer-v2-process-mosaic-request.modal.run";
+const BACKEND_URL = import.meta.env.VITE_MODAL_BACKEND_URL ||
+  "https://pedrogiudice--picture-composer-backend-a100-process-intimacy-request.modal.run";
+const MOSAIC_BACKEND_URL = import.meta.env.VITE_MODAL_MOSAIC_URL ||
+  "https://pedrogiudice--picture-composer-backend-a100-process-mosaic-request.modal.run";
 
+/**
+ * Interface alinhada com o backend.py (Modal.com)
+ * Campos retornados pelo GameMasterEngine
+ */
 export interface IntimacyResponse {
-  instruction_title_pt_br: string;
-  instruction_text_pt_br: string;
-  clinical_rationale_pt_br: string;
-  intensity_metric: number;
-  duration_sec: number;
-  // V2 metadata
-  visual_description?: string;
-  vision_model_used?: string;
-  text_model_used?: string;
+  challenge_title: string;
+  challenge_text: string;
+  rationale: string;
+  duration_seconds: number;
+  intensity: number;
   error?: string;
-  // Legacy field for backwards compat
-  safety_validation?: string;
 }
 
 export class SomaticBackend {
@@ -80,11 +80,11 @@ export class SomaticBackend {
 
   private static mockFallback(level: number): IntimacyResponse {
     return {
-      instruction_title_pt_br: "Protocolo de Contato Visual",
-      instruction_text_pt_br: "Mantenham contato visual direto sem piscar excessivamente. Sincronizem a respiracao ate que o desconforto se torne calor.",
-      clinical_rationale_pt_br: "Simulacao de protocolo devido a ausencia de conexao com backend.",
-      intensity_metric: level,
-      duration_sec: 120,
+      challenge_title: "Protocolo de Contato Visual",
+      challenge_text: "Mantenham contato visual direto sem piscar excessivamente. Sincronizem a respiracao ate que o desconforto se torne calor.",
+      rationale: "Simulacao de protocolo devido a ausencia de conexao com backend.",
+      intensity: level,
+      duration_seconds: 120,
       error: "Backend offline - usando fallback local"
     };
   }
