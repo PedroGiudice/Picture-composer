@@ -4,7 +4,7 @@ import { PhotoUploader } from './components/PhotoUploader';
 import { MemoryViewer } from './components/MemoryViewer';
 import { MosaicCreator } from './components/MosaicCreator';
 import { Navigation } from './components/Navigation';
-import { ChatPanel } from './components/ChatPanel';
+import { ChatDrawer } from './components/ChatDrawer';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { MotionBackground } from './components/ui/MotionBackground';
 import { AppState } from './types';
@@ -78,7 +78,7 @@ const IntimacyApp: React.FC = () => {
           </p>
         </footer>
 
-        <ChatPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+        <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
       </div>
     </MotionBackground>
   );

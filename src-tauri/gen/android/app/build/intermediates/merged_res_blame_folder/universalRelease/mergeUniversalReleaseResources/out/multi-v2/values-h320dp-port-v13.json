@@ -1,0 +1,19 @@
+{
+    "logs": [
+        {
+            "outputFile": "com.hotcocoa.desktop.app-mergeUniversalReleaseResources-41:/values-h320dp-port-v13/values-h320dp-port-v13.xml",
+            "map": [
+                {
+                    "source": "/home/cmr-auto/.gradle/caches/8.14.3/transforms/a16f15c1c1fe1e25b062327918a513ed/transformed/material-1.12.0/res/values-h320dp-port-v13/values-h320dp-port-v13.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "63",
+                        "endOffsets": "114"
+                    }
+                }
+            ]
+        }
+    ]
+}

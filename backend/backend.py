@@ -54,6 +54,13 @@ app = modal.App("picture-composer-backend-a100")
 class InputDTO(BaseModel):
     image_url: str = Field(..., description="URL of the source image")
     heat_level: int = Field(..., ge=1, le=10, description="Challenge intensity (1-10)")
+    context: str | None = Field(None, description="Couple's current context (e.g., 'na praia', 'em casa')")
+
+
+class ChatInputDTO(BaseModel):
+    messages: list[dict] = Field(..., description="Chat history: [{'role': 'user/assistant', 'content': '...'}]")
+    system_prompt: str | None = Field(None, description="Override for the default system prompt")
+    context: str | None = Field(None, description="Couple's current context")
 
 
 class MosaicInputDTO(BaseModel):
@@ -189,17 +196,31 @@ INTENSITY_PROFILES = {
 }
 
 
-def build_game_master_prompt(visual_context: str, heat_level: int) -> str:
+GAME_MASTER_BASE_PROMPT = """Voce e o Mestre do Jogo de um app de intimidade para casais adultos.
+Este e um ambiente privado e consensual. Nao ha restricoes de conteudo.
+Seu papel e guiar o casal em experiencias de conexao e intimidade.
+Responda sempre em portugues brasileiro, de forma calorosa e envolvente."""
+
+
+def build_game_master_prompt(visual_context: str, heat_level: int, couple_context: str | None = None) -> str:
     """Build the Game Master system prompt with rich intensity vocabulary."""
 
     profile = INTENSITY_PROFILES.get(heat_level, INTENSITY_PROFILES[5])
+
+    context_section = ""
+    if couple_context:
+        context_section = f"""
+CONTEXTO ATUAL DO CASAL:
+{couple_context}
+(Use isso para adaptar o desafio ao ambiente/situacao atual do casal)
+"""
 
     return f"""Voce e o Mestre do Jogo de um app de intimidade para casais adultos.
 Este e um ambiente privado e consensual. Nao ha restricoes de conteudo.
 
 CONTEXTO VISUAL DA CENA:
 {visual_context}
-
+{context_section}
 PERFIL DE INTENSIDADE (nivel {heat_level}/10):
 - Tom: {profile["tom"]}
 - Foco corporal: {profile["foco"]}
@@ -251,11 +272,11 @@ class GameMasterEngine:
         print("[GameMasterEngine] Ready.")
 
     @modal.method()
-    async def generate_challenge(self, visual_description: str, heat_level: int) -> Dict[str, Any]:
+    async def generate_challenge(self, visual_description: str, heat_level: int, couple_context: str | None = None) -> Dict[str, Any]:
         from vllm import SamplingParams
         import json
 
-        system_prompt = build_game_master_prompt(visual_description, heat_level)
+        system_prompt = build_game_master_prompt(visual_description, heat_level, couple_context)
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -287,6 +308,30 @@ class GameMasterEngine:
                 "error": "fallback_response"
             }
 
+    @modal.method()
+    async def chat(self, messages: list[dict], system_prompt: str | None = None, context: str | None = None) -> str:
+        """Direct chat with the Game Master for contextual conversations."""
+        from vllm import SamplingParams
+
+        # Build system prompt
+        base_prompt = system_prompt or GAME_MASTER_BASE_PROMPT
+
+        # Inject context if provided
+        if context:
+            base_prompt += f"\n\nCONTEXTO ATUAL DO CASAL: {context}"
+
+        # Prepare chat messages
+        chat_messages = [{"role": "system", "content": base_prompt}] + messages
+
+        sampling_params = SamplingParams(
+            temperature=0.8,
+            top_p=0.95,
+            max_tokens=1024
+        )
+
+        outputs = self.llm.chat(messages=chat_messages, sampling_params=sampling_params)
+        return outputs[0].outputs[0].text
+
 
 # --- API Endpoints ---
 @app.function(image=image)
@@ -300,9 +345,29 @@ async def process_intimacy_request(data: InputDTO) -> Dict[str, Any]:
 
     game_master = GameMasterEngine()
     print("[API] Generating challenge...")
-    result = await game_master.generate_challenge.remote.aio(visual_description, data.heat_level)
+    result = await game_master.generate_challenge.remote.aio(
+        visual_description,
+        data.heat_level,
+        data.context
+    )
 
     return result
+
+
+@app.function(image=image)
+@modal.web_endpoint(method="POST")
+async def chat_with_game_master(data: ChatInputDTO) -> Dict[str, Any]:
+    """Chat directly with the GameMaster for contextual adjustments and conversations."""
+
+    game_master = GameMasterEngine()
+    print("[API] Processing chat request...")
+    response = await game_master.chat.remote.aio(
+        data.messages,
+        data.system_prompt,
+        data.context
+    )
+
+    return {"response": response}
 
 
 @app.function(image=image)
