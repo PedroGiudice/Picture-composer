@@ -35,6 +35,10 @@ Commitar após cada mudança lógica para validar cedo e evitar perda de trabalh
 ### 6. Nunca Substituir Modelo do Usuário
 **NUNCA** substituir modelo indicado pelo usuário - usar EXATAMENTE o especificado.
 
+### 7. Ambiente Padrão: Linux Ubuntu
+A menos que o usuário diga o contrário, considere **SEMPRE** que estamos em Linux Ubuntu.
+Comandos de instalação devem usar `apt`, paths seguem convenções Linux, etc.
+
 ---
 
 ## Erros Aprendidos
