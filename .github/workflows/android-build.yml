@@ -47,8 +47,11 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Install Tauri CLI
+      - name: Install Tauri CLI (bun)
         run: bun add -g @tauri-apps/cli
+
+      - name: Install Tauri CLI (cargo)
+        run: cargo install tauri-cli --locked
 
       - name: Setup Android NDK
         run: |
