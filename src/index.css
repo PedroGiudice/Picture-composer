@@ -1,5 +1,6 @@
 /* Import theme variables - must be first */
 @import './styles/theme.css';
+@import './styles/hotcocoa.css';
 
 @tailwind base;
 @tailwind components;
