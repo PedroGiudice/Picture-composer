@@ -1,10 +1,11 @@
 // src/context/ThemeContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type IntimacyMode = 'HOT' | 'WARM';
+// Lowercase para consistencia com data-theme attribute
+export type ThemeMode = 'hot' | 'warm';
 
 interface ThemeSettings {
-  mode: IntimacyMode;
+  mode: ThemeMode;
   aiSettings: {
     temperature: number;
     maxTokens: number;
@@ -14,18 +15,18 @@ interface ThemeSettings {
 }
 
 interface ThemeContextType {
-  mode: IntimacyMode;
+  mode: ThemeMode;
   settings: ThemeSettings;
-  setMode: (mode: IntimacyMode) => void;
+  setMode: (mode: ThemeMode) => void;
   updateAiSettings: (settings: Partial<ThemeSettings['aiSettings']>) => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [mode, setMode] = useState<IntimacyMode>('HOT');
+  const [mode, setModeState] = useState<ThemeMode>('hot');
   const [settings, setSettings] = useState<ThemeSettings>({
-    mode: 'HOT',
+    mode: 'hot',
     aiSettings: {
       temperature: 0.8,
       maxTokens: 1024,
@@ -40,28 +41,19 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }));
   };
 
-  const handleSetMode = (newMode: IntimacyMode) => {
-    setMode(newMode);
-    // Update CSS variables specifically for the mode - Deep Dark palette
-    const root = document.documentElement;
-    if (newMode === 'HOT') {
-      root.style.setProperty('--color-primary', '#e11d48');
-      root.style.setProperty('--color-bg', '#0a0506');      // DEEP void
-      root.style.setProperty('--color-accent', '#c2410c');
-      root.style.setProperty('--color-surface', '#1f0f12');
-    } else {
-      root.style.setProperty('--color-primary', '#db2777');
-      root.style.setProperty('--color-bg', '#0f0508');      // DEEP pink-void
-      root.style.setProperty('--color-accent', '#d97706');
-      root.style.setProperty('--color-surface', '#1a0a10');
-    }
+  const setMode = (newMode: ThemeMode) => {
+    setModeState(newMode);
+    setSettings(prev => ({ ...prev, mode: newMode }));
   };
 
+  // Apply theme to document root via data-theme attribute
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', mode);
+  }, [mode]);
+
   return (
-    <ThemeContext.Provider value={{ mode, settings, setMode: handleSetMode, updateAiSettings }}>
-      <div className={`theme-${mode.toLowerCase()} transition-colors duration-500 min-h-screen`}>
-        {children}
-      </div>
+    <ThemeContext.Provider value={{ mode, settings, setMode, updateAiSettings }}>
+      {children}
     </ThemeContext.Provider>
   );
 };
