@@ -1,9 +1,9 @@
+// src/components/PhotoUploader.tsx
 import React, { useRef, useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, X, Cloud, Loader2, Settings, FolderOpen } from 'lucide-react';
-import { Button } from './Button';
-import { ConfigModal } from './ConfigModal';
-import { loadGoogleApi, openPicker, getCredentials } from '../utils/googleIntegration';
-import { isTauri, listLocalPhotos, savePhotoLocally, getPhotoAsBase64, fileToBase64, getPhotosPath } from '../services/tauri';
+import { Upload, Cloud, Loader2, Settings, Image as ImageIcon, X } from 'lucide-react';
+import { ParticleBackground } from './ui/ParticleBackground';
+import { loadGoogleApi, openPicker, getCredentials } from '@/utils/googleIntegration';
+import { isTauri, listLocalPhotos, savePhotoLocally, getPhotoAsBase64, fileToBase64 } from '@/services/tauri';
 
 interface FilePreviewProps {
   file: File;
@@ -20,19 +20,20 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => {
   }, [file]);
 
   return (
-    <div className="relative group aspect-square bg-slate-800">
+    <div className="relative group aspect-square rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--hotcocoa-card-bg)' }}>
       {url && (
-        <img 
-          src={url} 
-          alt="Preview" 
+        <img
+          src={url}
+          alt="Preview"
           className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
         />
       )}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="absolute top-1 right-1 p-1 bg-black/50 text-white hover:bg-rose-600 transition-colors"
+        className="absolute top-1 right-1 p-1 rounded-full transition-colors touch-target"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
       >
-        <X className="w-3 h-3" />
+        <X size={14} style={{ color: 'var(--hotcocoa-text-primary)' }} />
       </button>
     </div>
   );
@@ -56,9 +57,6 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [googleReady, setGoogleReady] = useState(false);
-  const [showConfig, setShowConfig] = useState(false);
-  const [hasCreds, setHasCreds] = useState(false);
-  const [photosPath, setPhotosPath] = useState<string | null>(null);
   const [isLoadingLocal, setIsLoadingLocal] = useState(false);
 
   // Carregar fotos locais ao iniciar (apenas no Tauri)
@@ -68,12 +66,8 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
       setIsLoadingLocal(true);
       try {
-        const path = await getPhotosPath();
-        setPhotosPath(path);
-
         const localPhotos = await listLocalPhotos();
         if (localPhotos.length > 0) {
-          // Converter fotos locais para File objects
           const loadedFiles: File[] = [];
           for (const photo of localPhotos) {
             const base64 = await getPhotoAsBase64(photo.name);
@@ -103,7 +97,6 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     loadGoogleApi(() => {
       setGoogleReady(true);
     });
-    setHasCreds(!!getCredentials());
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,9 +127,9 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
   const handleGoogleClick = () => {
     if (!googleReady) return;
-    
+
     if (!getCredentials()) {
-      setShowConfig(true);
+      // Will be handled by Navigation's ConfigModal
       return;
     }
 
@@ -148,94 +141,56 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
       setIsGoogleLoading(false);
     }).catch((err) => {
       setIsGoogleLoading(false);
-      if (err.message === "Missing Credentials") {
-        setShowConfig(true);
-      } else {
-        alert("Failed to load Google Picker. Check your API Key configuration.");
-      }
+      console.error('Google Picker error:', err);
     });
   };
 
   return (
-    <div className="w-full max-w-md mx-auto px-4 space-y-6 relative">
-      <ConfigModal
-        isOpen={showConfig}
-        onClose={() => setShowConfig(false)}
-        onSave={() => {
-          setHasCreds(true);
-          setShowConfig(false);
-        }}
-      />
+    <div className="flex-1 flex flex-col items-center justify-center px-6 pb-20 relative">
+      {/* Particle Background */}
+      <ParticleBackground />
 
-      {/* Header - Texto plano, sem efeitos */}
-      <div className="text-center space-y-2 pt-4">
+      {/* Title Section */}
+      <div className="text-center mb-12 relative z-10">
         <h2
-          className="text-2xl font-bold"
-          style={{ color: 'var(--text-primary)' }}
+          className="text-3xl mb-3 transition-colors duration-300"
+          style={{ color: 'var(--hotcocoa-text-primary)' }}
         >
           Nossas Memorias
         </h2>
         <p
-          className="text-sm"
-          style={{ color: 'var(--text-muted)' }}
+          className="text-base opacity-70 transition-colors duration-300"
+          style={{ color: 'var(--hotcocoa-text-secondary)' }}
         >
           Selecione fotos para comecar
         </p>
-        {photosPath && (
-          <div
-            className="flex items-center justify-center gap-2 text-xs"
-            style={{ color: 'var(--text-dim)' }}
-          >
-            <FolderOpen className="w-3 h-3" />
-            <span>
-              Fotos em: <code
-                className="px-1 py-0.5 rounded"
-                style={{ background: 'var(--bg-surface)' }}
-              >{photosPath}</code>
-            </span>
-          </div>
-        )}
         {isLoadingLocal && (
-          <div
-            className="flex items-center justify-center gap-2 text-xs"
-            style={{ color: 'var(--text-dim)' }}
-          >
-            <Loader2 className="w-3 h-3 animate-spin" />
+          <div className="flex items-center justify-center gap-2 mt-2 text-xs" style={{ color: 'var(--hotcocoa-text-secondary)' }}>
+            <Loader2 size={14} className="animate-spin" />
             <span>Carregando fotos locais...</span>
           </div>
         )}
       </div>
 
-      {/* Grid 2 Colunas - Cards com Material Elevation */}
-      <div className="grid grid-cols-2 gap-4 w-full">
-        {/* Card Dispositivo */}
+      {/* Upload Cards - MD3 Elevated Cards */}
+      <div className="w-full max-w-sm grid grid-cols-2 gap-4 mb-8 relative z-10">
+        {/* Device Upload Card */}
         <button
           onClick={triggerUpload}
-          className="
-            flex flex-col items-center justify-center
-            p-6 rounded-xl
-            min-h-[120px]
-            transition-all duration-150
-            active:scale-[0.98]
-          "
+          className="flex flex-col items-center justify-center p-6 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 touch-target"
           style={{
-            background: 'var(--bg-surface)',
-            boxShadow: 'var(--shadow-2)',
-          }}
-          onTouchStart={(e) => {
-            (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-1)';
-          }}
-          onTouchEnd={(e) => {
-            (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-2)';
+            backgroundColor: 'var(--hotcocoa-card-bg)',
+            minHeight: '120px',
+            borderRadius: '16px'
           }}
         >
           <Upload
-            className="w-8 h-8 mb-3"
-            style={{ color: 'var(--accent-rose)' }}
+            size={32}
+            style={{ color: 'var(--hotcocoa-accent)', marginBottom: '12px' }}
           />
           <span
-            className="text-sm font-medium"
-            style={{ color: 'var(--text-primary)' }}
+            className="text-sm text-center transition-colors duration-300"
+            style={{ color: 'var(--hotcocoa-text-primary)' }}
           >
             Dispositivo
           </span>
@@ -249,52 +204,41 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           className="hidden"
         />
 
-        {/* Card Google Drive */}
+        {/* Google Drive Card */}
         <button
           onClick={handleGoogleClick}
           disabled={!googleReady}
-          className={`
-            flex flex-col items-center justify-center
-            p-6 rounded-xl
-            min-h-[120px]
-            transition-all duration-150
-            active:scale-[0.98]
-            ${!googleReady ? 'opacity-60' : ''}
-          `}
+          className={`flex flex-col items-center justify-center p-6 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 touch-target ${
+            !googleReady ? 'opacity-60' : ''
+          }`}
           style={{
-            background: 'var(--bg-surface)',
-            boxShadow: 'var(--shadow-2)',
-          }}
-          onTouchStart={(e) => {
-            if (googleReady) {
-              (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-1)';
-            }
-          }}
-          onTouchEnd={(e) => {
-            (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-2)';
+            backgroundColor: 'var(--hotcocoa-card-bg)',
+            minHeight: '120px',
+            borderRadius: '16px'
           }}
         >
           {isGoogleLoading ? (
             <Loader2
-              className="w-8 h-8 mb-3 animate-spin"
-              style={{ color: 'var(--accent-ember)' }}
+              size={32}
+              className="animate-spin"
+              style={{ color: 'var(--hotcocoa-accent)', marginBottom: '12px' }}
             />
           ) : (
             <Cloud
-              className="w-8 h-8 mb-3"
-              style={{ color: 'var(--accent-ember)' }}
+              size={32}
+              style={{ color: 'var(--hotcocoa-accent)', marginBottom: '12px' }}
             />
           )}
           <span
-            className="text-sm font-medium"
-            style={{ color: 'var(--text-primary)' }}
+            className="text-sm text-center transition-colors duration-300"
+            style={{ color: 'var(--hotcocoa-text-primary)' }}
           >
             Google Drive
           </span>
           {!googleReady && (
             <span
-              className="text-[10px] mt-1"
-              style={{ color: 'var(--text-dim)' }}
+              className="text-xs mt-1 opacity-60 transition-colors duration-300"
+              style={{ color: 'var(--hotcocoa-text-secondary)' }}
             >
               Carregando...
             </span>
@@ -302,42 +246,37 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         </button>
       </div>
 
-      {/* Botao Configurar Google API */}
-      <div className="flex justify-center">
-        <button
-          onClick={() => setShowConfig(true)}
-          className="
-            flex items-center gap-2
-            px-4 py-2
-            text-sm
-            rounded-lg
-            transition-all duration-150
-            active:scale-[0.98]
-          "
-          style={{
-            color: hasCreds ? '#22c55e' : 'var(--text-muted)',
-            background: 'transparent',
-          }}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Configurar Google API</span>
-        </button>
-      </div>
+      {/* Config Link */}
+      <button
+        className="text-sm underline opacity-80 hover:opacity-100 transition-all duration-300 mb-2 relative z-10 flex items-center gap-2"
+        style={{ color: 'var(--hotcocoa-accent)' }}
+      >
+        <Settings size={16} />
+        Configurar Google API
+      </button>
 
-      {files.length > 0 && (
-        <div className="space-y-4">
+      {/* Selected Files Preview */}
+      {files.length > 0 ? (
+        <div className="w-full max-w-sm space-y-4 relative z-10 mt-4">
           <div className="flex items-center justify-between">
             <span
-              className="text-sm font-medium"
-              style={{ color: 'var(--text-muted)' }}
+              className="text-sm"
+              style={{ color: 'var(--hotcocoa-text-secondary)' }}
             >
               {files.length} fotos selecionadas
             </span>
-            <Button variant="outline" onClick={onClear} className="text-xs py-1 px-3 h-8">
+            <button
+              onClick={onClear}
+              className="text-xs px-3 py-1 rounded-lg transition-all active:scale-95"
+              style={{
+                backgroundColor: 'var(--hotcocoa-card-bg)',
+                color: 'var(--hotcocoa-text-secondary)'
+              }}
+            >
               Limpar
-            </Button>
+            </button>
           </div>
-          <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-4 gap-2 max-h-[120px] overflow-y-auto">
             {files.map((file, index) => (
               <FilePreview
                 key={`${file.name}-${index}`}
@@ -346,24 +285,28 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
               />
             ))}
           </div>
-          <div
-            className="pt-4"
-            style={{ borderTop: '1px solid var(--bg-elevated)' }}
+          <button
+            onClick={onContinue}
+            className="w-full py-4 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 touch-target"
+            style={{
+              backgroundColor: 'var(--hotcocoa-accent)',
+              color: '#000',
+              borderRadius: '12px',
+              minHeight: '48px'
+            }}
           >
-            <Button onClick={onContinue} className="w-full">
-              Comecar Experiencia
-            </Button>
-          </div>
+            Comecar Experiencia
+          </button>
         </div>
-      )}
-
-      {files.length === 0 && (
-        <div
-          className="flex flex-col items-center justify-center py-8 space-y-2"
-          style={{ color: 'var(--text-dim)' }}
-        >
-          <ImageIcon className="w-8 h-8 opacity-30" />
-          <p className="text-sm">Nenhuma foto selecionada</p>
+      ) : (
+        <div className="mt-4 relative z-10 flex flex-col items-center">
+          <ImageIcon size={32} style={{ color: 'var(--hotcocoa-text-secondary)', opacity: 0.3 }} />
+          <p
+            className="text-sm opacity-50 mt-2 transition-colors duration-300"
+            style={{ color: 'var(--hotcocoa-text-secondary)' }}
+          >
+            Nenhuma foto selecionada
+          </p>
         </div>
       )}
     </div>
