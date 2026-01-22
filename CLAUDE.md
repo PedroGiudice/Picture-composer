@@ -55,11 +55,43 @@ Não crie hooks para cada erro - documente aqui primeiro. Esta seção cresce or
 |------|------|-------|
 | 2026-01-18 | (Inicializado) | Ver regras críticas acima |
 | 2026-01-22 | Sugeriu buildar APK no PC quando já existia na VM | Artefatos buildados na VM devem ser copiados, não rebuildados |
+| 2026-01-22 | Tentou "adaptar" código do Figma em vez de copiar | **COPIAR EXATAMENTE** o código do Figma - ver seção abaixo |
+| 2026-01-22 | Substituiu MUI Icons por Lucide sem ser pedido | **NUNCA** substituir bibliotecas/frameworks sem autorização |
+| 2026-01-22 | Não copiou os arquivos CSS do Figma | Copiar TUDO: componentes TSX E arquivos CSS |
+| 2026-01-22 | Múltiplas iterações para algo simples | Seguir o código fonte, não "interpretar" |
 
 <!--
 Formato para adicionar:
 | YYYY-MM-DD | Descrição breve do erro | O que evitar/fazer diferente |
 -->
+
+---
+
+## Trabalhando com Figma
+
+### Regra de Ouro
+**COPIE O CÓDIGO DO FIGMA EXATAMENTE COMO ESTÁ.** Não "adapte", não "melhore", não substitua bibliotecas.
+
+### Processo Correto
+
+1. **Copiar componentes TSX** - Ajustar APENAS os paths de import (`@/app/...` -> `@/...`)
+2. **Copiar arquivos CSS** - TODOS: `theme.css`, `hotcocoa.css`, `md3-ripple.css`, etc.
+3. **Instalar dependências** - Se o Figma usa MUI Icons, instale MUI Icons. Não substitua por Lucide.
+4. **Testar** - `npm run build` deve passar
+5. **Compilar** - Para Tauri: `cargo tauri android build`
+
+### O que NÃO fazer
+
+- Substituir MUI Icons por Lucide (ou vice-versa)
+- "Interpretar" o design e reescrever do zero
+- Ignorar arquivos CSS
+- Fazer múltiplas iterações tentando "melhorar"
+
+### Se o Figma não estiver disponível
+
+1. **AVISAR O USUÁRIO** imediatamente
+2. Pedir para enviar os arquivos novamente
+3. NÃO tentar reconstruir de memória ou screenshots
 
 ---
 
