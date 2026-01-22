@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Upload, Image as ImageIcon, X, Cloud, Loader2, Settings, FolderOpen } from 'lucide-react';
 import { Button } from './Button';
 import { ConfigModal } from './ConfigModal';
-import { FloatingCard } from './ui/FloatingCard';
 import { loadGoogleApi, openPicker, getCredentials } from '../utils/googleIntegration';
 import { isTauri, listLocalPhotos, savePhotoLocally, getPhotoAsBase64, fileToBase64, getPhotosPath } from '../services/tauri';
 
@@ -158,7 +157,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-8 animate-fade-in relative">
+    <div className="w-full max-w-md mx-auto px-4 space-y-6 relative">
       <ConfigModal
         isOpen={showConfig}
         onClose={() => setShowConfig(false)}
@@ -168,115 +167,203 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         }}
       />
 
-      <div className="text-center space-y-4">
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-          Nossas Memórias
+      {/* Header - Texto plano, sem efeitos */}
+      <div className="text-center space-y-2 pt-4">
+        <h2
+          className="text-2xl font-bold"
+          style={{ color: 'var(--text-primary)' }}
+        >
+          Nossas Memorias
         </h2>
-        <p className="text-slate-400 max-w-lg mx-auto">
-          Selecione fotos especiais de vocês dois. Vamos usar essas imagens para gerar momentos de conexão.
+        <p
+          className="text-sm"
+          style={{ color: 'var(--text-muted)' }}
+        >
+          Selecione fotos para comecar
         </p>
         {photosPath && (
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+          <div
+            className="flex items-center justify-center gap-2 text-xs"
+            style={{ color: 'var(--text-dim)' }}
+          >
             <FolderOpen className="w-3 h-3" />
-            <span>Fotos salvas em: <code className="bg-slate-800 px-1 py-0.5 rounded">{photosPath}</code></span>
+            <span>
+              Fotos em: <code
+                className="px-1 py-0.5 rounded"
+                style={{ background: 'var(--bg-surface)' }}
+              >{photosPath}</code>
+            </span>
           </div>
         )}
         {isLoadingLocal && (
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+          <div
+            className="flex items-center justify-center gap-2 text-xs"
+            style={{ color: 'var(--text-dim)' }}
+          >
             <Loader2 className="w-3 h-3 animate-spin" />
             <span>Carregando fotos locais...</span>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-        <FloatingCard delay={0.1} className="cursor-pointer group" onClick={triggerUpload}>
-          <div className="text-center py-8">
-            <Upload className="mx-auto mb-4" size={48} style={{ color: 'var(--accent-rose)' }} />
-            <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-              Upload do Dispositivo
-            </h3>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              JPG, PNG, WebP (max 10MB)
-            </p>
-          </div>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            multiple
-            accept="image/*"
-            className="hidden"
+      {/* Grid 2 Colunas - Cards com Material Elevation */}
+      <div className="grid grid-cols-2 gap-4 w-full">
+        {/* Card Dispositivo */}
+        <button
+          onClick={triggerUpload}
+          className="
+            flex flex-col items-center justify-center
+            p-6 rounded-xl
+            min-h-[120px]
+            transition-all duration-150
+            active:scale-[0.98]
+          "
+          style={{
+            background: 'var(--bg-surface)',
+            boxShadow: 'var(--shadow-2)',
+          }}
+          onTouchStart={(e) => {
+            (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-1)';
+          }}
+          onTouchEnd={(e) => {
+            (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-2)';
+          }}
+        >
+          <Upload
+            className="w-8 h-8 mb-3"
+            style={{ color: 'var(--accent-rose)' }}
           />
-        </FloatingCard>
+          <span
+            className="text-sm font-medium"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Dispositivo
+          </span>
+        </button>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          multiple
+          accept="image/*"
+          className="hidden"
+        />
 
-        <div className="relative">
-          <FloatingCard
-            delay={0.2}
-            className={`cursor-pointer group ${!googleReady ? 'opacity-70' : ''}`}
-            onClick={handleGoogleClick}
-          >
-            <div className="text-center py-8">
-              {isGoogleLoading ? (
-                <Loader2 className="mx-auto mb-4 animate-spin" size={48} style={{ color: 'var(--accent-ember)' }} />
-              ) : (
-                <Cloud className="mx-auto mb-4" size={48} style={{ color: 'var(--accent-ember)' }} />
-              )}
-              <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                Google Drive & Photos
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Conectar ao cloud
-              </p>
-              {!googleReady && (
-                <p className="text-[10px] mt-2" style={{ color: 'var(--text-dim)' }}>
-                  Loading libraries...
-                </p>
-              )}
-            </div>
-          </FloatingCard>
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowConfig(true); }}
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/5 transition-colors z-10"
-            title="Configure API Keys"
-          >
-            <Settings
-              className="w-4 h-4"
-              style={{ color: hasCreds ? '#22c55e' : 'var(--text-muted)' }}
+        {/* Card Google Drive */}
+        <button
+          onClick={handleGoogleClick}
+          disabled={!googleReady}
+          className={`
+            flex flex-col items-center justify-center
+            p-6 rounded-xl
+            min-h-[120px]
+            transition-all duration-150
+            active:scale-[0.98]
+            ${!googleReady ? 'opacity-60' : ''}
+          `}
+          style={{
+            background: 'var(--bg-surface)',
+            boxShadow: 'var(--shadow-2)',
+          }}
+          onTouchStart={(e) => {
+            if (googleReady) {
+              (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-1)';
+            }
+          }}
+          onTouchEnd={(e) => {
+            (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-2)';
+          }}
+        >
+          {isGoogleLoading ? (
+            <Loader2
+              className="w-8 h-8 mb-3 animate-spin"
+              style={{ color: 'var(--accent-ember)' }}
             />
-          </button>
-        </div>
+          ) : (
+            <Cloud
+              className="w-8 h-8 mb-3"
+              style={{ color: 'var(--accent-ember)' }}
+            />
+          )}
+          <span
+            className="text-sm font-medium"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            Google Drive
+          </span>
+          {!googleReady && (
+            <span
+              className="text-[10px] mt-1"
+              style={{ color: 'var(--text-dim)' }}
+            >
+              Carregando...
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Botao Configurar Google API */}
+      <div className="flex justify-center">
+        <button
+          onClick={() => setShowConfig(true)}
+          className="
+            flex items-center gap-2
+            px-4 py-2
+            text-sm
+            rounded-lg
+            transition-all duration-150
+            active:scale-[0.98]
+          "
+          style={{
+            color: hasCreds ? '#22c55e' : 'var(--text-muted)',
+            background: 'transparent',
+          }}
+        >
+          <Settings className="w-4 h-4" />
+          <span>Configurar Google API</span>
+        </button>
       </div>
 
       {files.length > 0 && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-             <h3 className="text-sm font-medium text-slate-400">{files.length} fotos selecionadas</h3>
-             <Button variant="outline" onClick={onClear} className="text-xs py-1 px-3 h-8">
-               Limpar Tudo
-             </Button>
+            <span
+              className="text-sm font-medium"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {files.length} fotos selecionadas
+            </span>
+            <Button variant="outline" onClick={onClear} className="text-xs py-1 px-3 h-8">
+              Limpar
+            </Button>
           </div>
-          <div className="grid grid-cols-3 md:grid-cols-5 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+          <div className="grid grid-cols-3 gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">
             {files.map((file, index) => (
-              <FilePreview 
-                key={`${file.name}-${index}`} 
-                file={file} 
-                onRemove={() => onRemove(index)} 
+              <FilePreview
+                key={`${file.name}-${index}`}
+                file={file}
+                onRemove={() => onRemove(index)}
               />
             ))}
           </div>
-          <div className="flex justify-center pt-8 border-t border-slate-800">
-            <Button onClick={onContinue} className="w-full md:w-auto min-w-[200px]">
-              Começar Experiência
+          <div
+            className="pt-4"
+            style={{ borderTop: '1px solid var(--bg-elevated)' }}
+          >
+            <Button onClick={onContinue} className="w-full">
+              Comecar Experiencia
             </Button>
           </div>
         </div>
       )}
-      
+
       {files.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-6 text-slate-600 space-y-2">
-            <ImageIcon className="w-8 h-8 opacity-20" />
-            <p className="text-sm">Nenhuma foto selecionada ainda</p>
+        <div
+          className="flex flex-col items-center justify-center py-8 space-y-2"
+          style={{ color: 'var(--text-dim)' }}
+        >
+          <ImageIcon className="w-8 h-8 opacity-30" />
+          <p className="text-sm">Nenhuma foto selecionada</p>
         </div>
       )}
     </div>

@@ -50,21 +50,23 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center"
-        style={{ background: 'rgba(10, 5, 6, 0.9)' }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
         onClick={onClose}
       >
         <FloatingCard
           className="w-full max-w-md mx-4"
+          elevation={3}
           onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          hover={false}
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>
               API Configuration
             </h2>
-            <button onClick={onClose} className="p-1 hover:opacity-70 transition-opacity">
+            <button
+              onClick={onClose}
+              className="p-1 active:opacity-70 transition-opacity"
+            >
               <X size={20} style={{ color: 'var(--text-muted)' }} />
             </button>
           </div>
@@ -130,7 +132,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             <button
               onClick={handleSave}
               disabled={!clientId || !apiKey}
-              className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               style={{
                 background: 'linear-gradient(135deg, var(--accent-rose), var(--accent-wine))',
                 color: 'white'
@@ -142,7 +144,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             {getCredentials() && (
               <button
                 onClick={handleClear}
-                className="px-4 py-3 rounded-lg font-medium transition-all hover:brightness-110"
+                className="px-4 py-3 rounded-lg font-medium transition-all active:scale-[0.98] active:bg-[var(--bg-elevated)]"
                 style={{
                   background: 'var(--bg-surface)',
                   color: 'var(--text-muted)',

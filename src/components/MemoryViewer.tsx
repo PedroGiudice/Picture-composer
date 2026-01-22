@@ -1,7 +1,7 @@
 // src/components/MemoryViewer.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Play, Settings2, Info, AlertTriangle, X } from 'lucide-react';
+import { RefreshCw, Play, Settings2, Info, AlertTriangle, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './Button';
 import { SomaticLoader } from './ui/SomaticLoader';
 import { HeatSlider } from './ui/HeatSlider';
@@ -13,74 +13,174 @@ interface MemoryViewerProps {
   onReset: () => void;
 }
 
+interface RoundData {
+  file: File;
+  photoUrl: string;
+  result: IntimacyResponse | null;
+}
+
 export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) => {
-  const [currentFile, setCurrentFile] = useState<File | null>(null);
-  const [photoUrl, setPhotoUrl] = useState<string>('');
-  
+  // Configuracao de rodadas
+  const TOTAL_ROUNDS = Math.min(files.length, 10);
+
+  // State de rodadas
+  const [rounds, setRounds] = useState<RoundData[]>([]);
+  const [currentRound, setCurrentRound] = useState(1);
+
   // State Machine: SETUP -> PROCESSING -> REVEAL
   const [viewState, setViewState] = useState<'SETUP' | 'PROCESSING' | 'REVEAL'>('SETUP');
   const [heatLevel, setHeatLevel] = useState(1);
-  const [result, setResult] = useState<IntimacyResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load random file on mount or reset
-  useEffect(() => {
-    if (files.length > 0 && !currentFile) {
-      const random = files[Math.floor(Math.random() * files.length)];
-      setCurrentFile(random);
-      const url = URL.createObjectURL(random);
-      setPhotoUrl(url);
-    }
-  }, [files, currentFile]);
+  // Swipe state
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
 
-  // Cleanup: revogar URL ao desmontar componente
+  // Inicializar rodadas com fotos aleatorias
+  useEffect(() => {
+    if (files.length > 0 && rounds.length === 0) {
+      const shuffled = [...files].sort(() => Math.random() - 0.5);
+      const selectedFiles = shuffled.slice(0, TOTAL_ROUNDS);
+
+      const initialRounds: RoundData[] = selectedFiles.map(file => ({
+        file,
+        photoUrl: URL.createObjectURL(file),
+        result: null
+      }));
+
+      setRounds(initialRounds);
+    }
+  }, [files, rounds.length, TOTAL_ROUNDS]);
+
+  // Cleanup: revogar URLs ao desmontar
   useEffect(() => {
     return () => {
-      if (photoUrl) {
-        URL.revokeObjectURL(photoUrl);
-      }
+      rounds.forEach(round => {
+        if (round.photoUrl) {
+          URL.revokeObjectURL(round.photoUrl);
+        }
+      });
     };
-  }, [photoUrl]);
+  }, [rounds]);
 
+  // Dados da rodada atual
+  const currentRoundData = rounds[currentRound - 1];
+  const photoUrl = currentRoundData?.photoUrl || '';
+  const result = currentRoundData?.result || null;
+
+  // Navegacao entre rodadas
+  const handlePrevious = useCallback(() => {
+    if (currentRound > 1) {
+      setCurrentRound(prev => prev - 1);
+      // Se a rodada anterior ja foi processada, mostra REVEAL
+      const prevRound = rounds[currentRound - 2];
+      if (prevRound?.result) {
+        setViewState('REVEAL');
+      } else {
+        setViewState('SETUP');
+      }
+    }
+  }, [currentRound, rounds]);
+
+  const handleNext = useCallback(() => {
+    if (currentRound < TOTAL_ROUNDS) {
+      setCurrentRound(prev => prev + 1);
+      // Verifica se a proxima rodada ja foi processada
+      const nextRound = rounds[currentRound];
+      if (nextRound?.result) {
+        setViewState('REVEAL');
+      } else {
+        setViewState('SETUP');
+      }
+    }
+  }, [currentRound, TOTAL_ROUNDS, rounds]);
+
+  // Touch handlers para swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStart(e.touches[0].clientX);
+    setTouchEnd(e.touches[0].clientX);
+    setIsSwiping(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isSwiping) {
+      setTouchEnd(e.touches[0].clientX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isSwiping) return;
+    setIsSwiping(false);
+
+    const diff = touchStart - touchEnd;
+    const threshold = 50; // pixels minimos para considerar swipe
+
+    if (Math.abs(diff) > threshold) {
+      if (diff > 0) {
+        // Swipe para esquerda = proxima
+        handleNext();
+      } else {
+        // Swipe para direita = anterior
+        handlePrevious();
+      }
+    }
+  };
+
+  // Processar rodada atual
   const handleProcess = async () => {
     if (!photoUrl) return;
-    setErrorMessage(null); // Limpar erro anterior
+    setErrorMessage(null);
     setViewState('PROCESSING');
 
     try {
-      // Tenta Modal primeiro
       const data = await SomaticBackend.processSession(photoUrl, heatLevel);
 
-      // Se retornou erro no campo, usa fallback
+      let finalResult: IntimacyResponse;
+
       if (data.error) {
         console.warn('Modal falhou, usando Ollama fallback');
         const fallback = await OllamaService.generateFallbackChallenge(heatLevel);
-        setResult({
+        finalResult = {
           challenge_title: fallback.title,
           challenge_text: fallback.instruction,
           rationale: fallback.rationale,
           intensity: heatLevel,
           duration_seconds: 120,
           error: 'Usando Ollama local'
-        });
+        };
       } else {
-        setResult(data);
+        finalResult = data;
       }
+
+      // Atualizar resultado da rodada atual
+      setRounds(prev => prev.map((round, idx) =>
+        idx === currentRound - 1
+          ? { ...round, result: finalResult }
+          : round
+      ));
+
       setViewState('REVEAL');
     } catch (e) {
       console.error('Modal error, trying Ollama:', e);
 
-      // Fallback para Ollama
       try {
         const fallback = await OllamaService.generateFallbackChallenge(heatLevel);
-        setResult({
+        const finalResult: IntimacyResponse = {
           challenge_title: fallback.title,
           challenge_text: fallback.instruction,
           rationale: fallback.rationale,
           intensity: heatLevel,
           duration_seconds: 120,
           error: 'Usando Ollama local'
-        });
+        };
+
+        setRounds(prev => prev.map((round, idx) =>
+          idx === currentRound - 1
+            ? { ...round, result: finalResult }
+            : round
+        ));
+
         setViewState('REVEAL');
       } catch (ollamaError) {
         console.error('Ollama also failed:', ollamaError);
@@ -90,118 +190,138 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
     }
   };
 
-  const nextSession = () => {
-    // Revogar URL anterior para evitar memory leak
-    if (photoUrl) {
-      URL.revokeObjectURL(photoUrl);
+  // Avancar para proxima rodada apos REVEAL
+  const handleNextRound = () => {
+    if (currentRound < TOTAL_ROUNDS) {
+      setCurrentRound(prev => prev + 1);
+      setViewState('SETUP');
     }
-
-    const random = files[Math.floor(Math.random() * files.length)];
-    setCurrentFile(random);
-    const url = URL.createObjectURL(random);
-    setPhotoUrl(url);
-    setViewState('SETUP');
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto min-h-[85vh] flex flex-col md:flex-row gap-8 items-center justify-center p-6 relative">
-      
-      {/* LEFT COLUMN: VISUAL CONTEXT */}
-      <motion.div 
-        layout
-        className="relative w-full md:w-1/2 aspect-[3/4] md:aspect-[4/5] bg-warm-950 rounded-lg overflow-hidden border border-warm-900 shadow-2xl group"
+    <div className="w-full max-w-lg mx-auto min-h-[100dvh] flex flex-col px-4 py-6 relative">
+
+      {/* Error Banner */}
+      <AnimatePresence>
+        {errorMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -10, height: 0 }}
+            className="mb-4 p-4 bg-red-900/30 border border-red-700/50 rounded-xl flex items-start gap-3"
+          >
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-red-300 text-sm">{errorMessage}</p>
+            </div>
+            <button
+              onClick={() => setErrorMessage(null)}
+              className="text-red-400 active:text-red-300 transition-colors p-1"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Container de Foto com Swipe */}
+      <div
+        className="relative w-full aspect-[4/3] overflow-hidden rounded-xl bg-[var(--color-surface)] shadow-2xl"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <AnimatePresence mode="wait">
           {photoUrl && (
             <motion.img
               key={photoUrl}
               src={photoUrl}
-              alt="Memory"
-              initial={{ opacity: 0, scale: 1.1, filter: 'grayscale(100%)' }}
-              animate={{ 
-                opacity: 1, 
-                scale: 1, 
-                filter: viewState === 'REVEAL' ? 'grayscale(0%)' : 'grayscale(100%) brightness(0.7)'
+              alt="Memoria"
+              initial={{ opacity: 0, x: isSwiping ? (touchStart - touchEnd > 0 ? 50 : -50) : 0 }}
+              animate={{
+                opacity: 1,
+                x: 0,
+                filter: viewState === 'REVEAL' ? 'grayscale(0%)' : 'grayscale(50%) brightness(0.8)'
               }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.2, ease: "circOut" }}
+              exit={{ opacity: 0, x: isSwiping ? (touchStart - touchEnd > 0 ? -50 : 50) : 0 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
               className="w-full h-full object-cover"
             />
           )}
         </AnimatePresence>
-        
-        {/* Overlay Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-warm-950 via-transparent to-transparent opacity-80" />
-        
+
+        {/* Overlay Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+
+        {/* Indicadores de swipe (setas sutis) */}
+        {currentRound > 1 && (
+          <div className="absolute left-2 top-1/2 -translate-y-1/2 text-white/30">
+            <ChevronLeft className="w-6 h-6" />
+          </div>
+        )}
+        {currentRound < TOTAL_ROUNDS && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white/30">
+            <ChevronRight className="w-6 h-6" />
+          </div>
+        )}
+
         {/* Status Badge */}
-        <div className="absolute top-4 left-4">
-           <div className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase backdrop-blur-md border ${
-             viewState === 'REVEAL' 
-               ? 'bg-rose-900/30 border-rose-500/50 text-rose-200' 
-               : 'bg-slate-900/30 border-slate-700/50 text-slate-400'
-           }`}>
-             {viewState === 'PROCESSING' ? 'Analyzing...' : viewState === 'REVEAL' ? 'Active Session' : 'Standby'}
-           </div>
+        <div className="absolute top-3 left-3">
+          <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase backdrop-blur-md border ${
+            viewState === 'REVEAL'
+              ? 'bg-rose-900/40 border-rose-500/50 text-rose-200'
+              : viewState === 'PROCESSING'
+              ? 'bg-amber-900/40 border-amber-500/50 text-amber-200'
+              : 'bg-slate-900/40 border-slate-700/50 text-slate-300'
+          }`}>
+            {viewState === 'PROCESSING' ? 'Analisando...' : viewState === 'REVEAL' ? 'Ativa' : 'Preparar'}
+          </div>
         </div>
-      </motion.div>
+      </div>
 
-      {/* RIGHT COLUMN: CONTROL & REVELATION */}
-      <div className="w-full md:w-1/2 space-y-8 relative min-h-[400px] flex flex-col justify-center">
+      {/* Indicador de Progresso */}
+      <div className="flex items-center justify-center gap-2 py-4">
+        <span className="text-sm text-slate-400">
+          Rodada {currentRound} de {TOTAL_ROUNDS}
+        </span>
+      </div>
 
-        {/* Error Banner */}
-        <AnimatePresence>
-          {errorMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
-              className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg flex items-start gap-3"
-            >
-              <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-red-300 text-sm">{errorMessage}</p>
-              </div>
-              <button
-                onClick={() => setErrorMessage(null)}
-                className="text-red-400 hover:text-red-300 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
+      {/* Area de Conteudo */}
+      <div className="flex-1 flex flex-col">
         <AnimatePresence mode="wait">
 
           {/* STATE: SETUP */}
           {viewState === 'SETUP' && (
             <motion.div
               key="setup"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="flex-1 flex flex-col space-y-6"
             >
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-                  <Settings2 className="w-6 h-6 text-rose-500" />
-                  Calibrate Session
+              <div className="space-y-2 text-center">
+                <h2 className="text-xl font-bold text-white tracking-tight flex items-center justify-center gap-2">
+                  <Settings2 className="w-5 h-5 text-[var(--color-primary)]" />
+                  Calibrar Sessao
                 </h2>
                 <p className="text-slate-400 text-sm leading-relaxed">
-                  Select the physiological intensity for this memory intervention.
-                  Dr. Elena will analyze the visual context to generate a specific challenge.
+                  Selecione a intensidade para esta memoria.
                 </p>
               </div>
 
-              <div className="p-6 bg-warm-900/20 border border-warm-800 rounded-xl backdrop-blur-sm">
+              <div className="p-4 bg-[var(--color-surface)] border border-slate-800 rounded-xl">
                 <HeatSlider value={heatLevel} onChange={setHeatLevel} />
               </div>
 
-              <div className="pt-4 flex gap-4">
-                <Button onClick={handleProcess} className="flex-1 h-14 text-lg" icon={<Play className="w-4 h-4 fill-current" />}>
-                  Initialize Protocol
-                </Button>
-              </div>
+              <div className="flex-1" />
+
+              <Button
+                onClick={handleProcess}
+                className="w-full min-h-[48px] text-base"
+                icon={<Play className="w-4 h-4 fill-current" />}
+              >
+                Iniciar Protocolo
+              </Button>
             </motion.div>
           )}
 
@@ -212,9 +332,9 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="w-full flex justify-center"
+              className="flex-1 flex items-center justify-center"
             >
-              <SomaticLoader text="SYNCHRONIZING..." />
+              <SomaticLoader text="SINCRONIZANDO..." />
             </motion.div>
           )}
 
@@ -222,62 +342,97 @@ export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) =>
           {viewState === 'REVEAL' && result && (
             <motion.div
               key="reveal"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="space-y-6"
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="flex-1 flex flex-col space-y-4"
             >
-              {/* Clinical Card */}
-              <div className="relative p-8 border-l-4 border-rose-600 bg-gradient-to-r from-warm-900/40 to-transparent backdrop-blur-md">
-                <div className="absolute -top-3 left-6 px-2 bg-warm-950 text-rose-500 text-xs font-bold uppercase tracking-widest">
+              {/* Card de Pergunta/Desafio */}
+              <div className="p-4 rounded-xl bg-[var(--color-surface)] shadow-lg border-l-4 border-[var(--color-primary)]">
+                <div className="text-[10px] text-[var(--color-primary)] font-bold uppercase tracking-widest mb-2">
                   {result.challenge_title}
                 </div>
-
-                <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight font-serif italic mb-6">
+                <p className="text-base text-white text-center leading-relaxed font-medium">
                   "{result.challenge_text}"
-                </h3>
+                </p>
+              </div>
 
-                <div className="flex items-start gap-3 mt-8 pt-6 border-t border-white/5">
-                  <Info className="w-4 h-4 text-warm-500 mt-1 shrink-0" />
-                  <div className="space-y-1">
-                    <p className="text-[10px] uppercase text-warm-500 font-bold tracking-widest">Clinical Rationale</p>
-                    <p className="text-xs text-warm-300 leading-relaxed font-mono">
-                      {result.rationale}
-                    </p>
-                    {result?.error && (
-                      <div className="mt-2 text-[9px] text-amber-500/60 uppercase tracking-wider">
-                        Modo Offline (Ollama)
-                      </div>
-                    )}
-                  </div>
+              {/* Rationale (colapsavel) */}
+              <details className="group">
+                <summary className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer list-none">
+                  <Info className="w-3 h-3" />
+                  <span>Ver fundamentacao</span>
+                </summary>
+                <div className="mt-2 p-3 bg-slate-900/50 rounded-lg">
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {result.rationale}
+                  </p>
+                  {result?.error && (
+                    <div className="mt-2 text-[9px] text-amber-500/60 uppercase tracking-wider">
+                      Modo Offline (Ollama)
+                    </div>
+                  )}
+                </div>
+              </details>
+
+              {/* Stats compactos */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-slate-900/50 border border-slate-800 rounded-lg text-center">
+                  <p className="text-[10px] text-slate-500 uppercase">Duracao</p>
+                  <p className="text-lg font-bold text-white">{result.duration_seconds}s</p>
+                </div>
+                <div className="p-3 bg-slate-900/50 border border-slate-800 rounded-lg text-center">
+                  <p className="text-[10px] text-slate-500 uppercase">Intensidade</p>
+                  <p className="text-lg font-bold text-[var(--color-primary)]">{result.intensity}/10</p>
                 </div>
               </div>
 
-              {/* Stats / Controls */}
-              <div className="grid grid-cols-2 gap-4">
-                 <div className="p-4 bg-slate-900/50 border border-slate-800 rounded text-center">
-                   <p className="text-[10px] text-slate-500 uppercase">Duration</p>
-                   <p className="text-xl font-bold text-white">{result.duration_seconds}s</p>
-                 </div>
-                 <div className="p-4 bg-slate-900/50 border border-slate-800 rounded text-center">
-                   <p className="text-[10px] text-slate-500 uppercase">Intensity</p>
-                   <p className="text-xl font-bold text-rose-500">{result.intensity}/10</p>
-                 </div>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button onClick={nextSession} variant="secondary" className="flex-1" icon={<RefreshCw className="w-4 h-4" />}>
-                  Next Memory
-                </Button>
-                <Button onClick={onReset} variant="outline" className="flex-none">
-                  End
-                </Button>
-              </div>
+              <div className="flex-1" />
             </motion.div>
           )}
 
         </AnimatePresence>
       </div>
+
+      {/* Botoes de Navegacao Explicitos - Sempre visiveis exceto em PROCESSING */}
+      {viewState !== 'PROCESSING' && (
+        <div className="flex gap-4 mt-4 pt-4 border-t border-slate-800/50">
+          <button
+            onClick={handlePrevious}
+            disabled={currentRound === 1}
+            className="flex-1 min-h-[48px] py-3 rounded-xl bg-[var(--color-surface)] text-slate-400 font-medium disabled:opacity-40 active:scale-[0.98] transition-all duration-150 border border-slate-800"
+          >
+            Voltar
+          </button>
+
+          {viewState === 'REVEAL' && currentRound < TOTAL_ROUNDS ? (
+            <button
+              onClick={handleNextRound}
+              className="flex-1 min-h-[48px] py-3 rounded-xl bg-[var(--color-primary)] text-white font-semibold active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+            >
+              Proxima Rodada
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          ) : viewState === 'REVEAL' && currentRound === TOTAL_ROUNDS ? (
+            <button
+              onClick={onReset}
+              className="flex-1 min-h-[48px] py-3 rounded-xl bg-[var(--color-primary)] text-white font-semibold active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Finalizar
+            </button>
+          ) : (
+            <button
+              onClick={handleNext}
+              disabled={currentRound === TOTAL_ROUNDS}
+              className="flex-1 min-h-[48px] py-3 rounded-xl bg-[var(--color-surface)] text-slate-400 font-medium disabled:opacity-40 active:scale-[0.98] transition-all duration-150 border border-slate-800"
+            >
+              Pular
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

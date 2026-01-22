@@ -1,16 +1,25 @@
 ---
 trigger: keywords
-keywords: [tauri component, tauri react, tauri ui, desktop ui, tauri styling]
-description: Padroes de frontend para apps Tauri - desktop-first
+keywords: [tauri component, tauri react, tauri ui, desktop ui, tauri styling, tanstack query, tauri data fetching]
+description: Padroes de frontend para apps Tauri - desktop-first com TanStack Query
 ---
 
 # Frontend Patterns para Tauri
+
+## Stack 2026
+- React 19 + TypeScript 5.8+
+- Vite 6.x para build
+- **TanStack Query para data fetching (OBRIGATORIO)**
+- TanStack Router para navegacao (opcional)
+- Tailwind CSS 4.x
+- tauri-specta para IPC type-safe
 
 ## Filosofia
 Apps Tauri sao DESKTOP apps, nao sites. O frontend deve:
 - Aproveitar capacidades desktop (hover, keyboard, etc.)
 - Usar CSS moderno sem restricoes de "browser compatibility"
 - Integrar-se com o sistema (tray, menus, shortcuts)
+- **NUNCA fazer fetch direto - sempre TanStack Query**
 
 ## Estrutura de Componentes
 
@@ -22,14 +31,58 @@ src/
       FilePicker.tsx
       Notification.tsx
       ThemeSync.tsx
-    features/        # Componentes de feature
+    features/        # Componentes de feature/dominio
   hooks/
     useTauriEvent.ts # Subscribe a eventos Tauri
     useFileSystem.ts # Wrapper para fs plugin
     useNativeTheme.ts# Sync com tema do sistema
+    queries/         # TanStack Query hooks
+      useUserQuery.ts
+      useDataQuery.ts
   lib/
     tauri/           # Bindings e helpers
+    api.ts           # Configuracao cliente API
+  types/             # Definicoes TypeScript globais
   App.tsx
+  main.tsx           # QueryClient setup
+```
+
+## TanStack Query Setup
+
+```tsx
+// main.tsx
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 min
+      retry: 1,
+    },
+  },
+});
+
+createRoot(document.getElementById('root')!).render(
+  <QueryClientProvider client={queryClient}>
+    <App />
+  </QueryClientProvider>
+);
+```
+
+## Hook Pattern: Data Fetching com Tauri
+
+```tsx
+// hooks/queries/useUserData.ts
+import { useQuery } from '@tanstack/react-query';
+import { invoke } from '@tauri-apps/api/core';
+
+export function useUserData(userId: string) {
+  return useQuery({
+    queryKey: ['user', userId],
+    queryFn: () => invoke<User>('get_user', { userId }),
+    enabled: !!userId,
+  });
+}
 ```
 
 ## Componente: FilePicker (Exemplo Golden Path)
@@ -194,10 +247,24 @@ export function useKeyboardShortcut(
 }
 ```
 
-## Regras de Styling
+## Regras Absolutas
 
-1. **NAO simplificar** por "compatibilidade" - WebView e moderno
-2. **USAR** backdrop-filter, gradients complexos, animacoes
-3. **IMPLEMENTAR** hover states ricos (desktop tem mouse)
-4. **ADICIONAR** keyboard shortcuts para acoes principais
-5. **SINCRONIZAR** tema com sistema operacional
+### NUNCA Fazer
+- Usar `<input type="file">` (sempre `dialog.open()`)
+- Usar `localStorage` (sempre `store` plugin)
+- Usar `alert()` ou toasts web (sempre `notification` plugin)
+- Simplificar CSS por "compatibilidade" (WebView e moderno)
+- Fazer fetch direto (sempre TanStack Query)
+- Usar `any` em tipos (TypeScript strict)
+- Usar `window.open()` (sempre `shell.open()`)
+- Usar `navigator.clipboard` (sempre `clipboard` plugin)
+
+### SEMPRE Fazer
+- Usar APIs nativas para file, clipboard, notification
+- Usar TanStack Query para data fetching
+- Implementar hover states ricos (desktop tem mouse)
+- Adicionar keyboard shortcuts para acoes principais
+- Usar backdrop-filter, gradients complexos
+- Sincronizar com tema do sistema
+- Type-safe IPC via tauri-specta
+- Focus states visiveis para acessibilidade
