@@ -8,6 +8,11 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/drive/1-3O7JBVhrJ97rDko47y73vjBja1rAYj-
 
+## Development Environment
+
+**OS:** Linux Ubuntu (padrão)
+**VM:** Oracle Cloud VM.Standard.E2.4 (x86_64, 4 OCPUs, 64GB RAM)
+
 ## Run Locally
 
 **Prerequisites:**  Node.js
