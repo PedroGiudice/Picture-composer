@@ -12,9 +12,13 @@ export function Header({ onConfigClick, onBackClick, showBackButton = false }: H
   const { mode } = useTheme();
   
   return (
-    <header 
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-12 transition-colors duration-300"
-      style={{ backgroundColor: 'var(--hotcocoa-header-bg)' }}
+    <header
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 transition-colors duration-300"
+      style={{
+        backgroundColor: 'var(--hotcocoa-header-bg)',
+        paddingTop: 'max(env(safe-area-inset-top, 0px), 24px)',
+        height: 'calc(48px + max(env(safe-area-inset-top, 0px), 24px))'
+      }}
     >
       <div className="flex-1">
         {showBackButton && onBackClick && (

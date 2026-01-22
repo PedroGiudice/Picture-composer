@@ -40,9 +40,12 @@ export default function App() {
           showBackButton={currentScreen === "chat"}
         />
 
-        {/* Main Content - starts below header (48px + 8px margin = 56px) */}
+        {/* Main Content - starts below header (48px + safe-area + margin) */}
         {/* Desktop: centered with max-width | Mobile: full width */}
-        <main className="flex-1 flex flex-col mx-auto w-full max-w-6xl" style={{ marginTop: '56px' }}>
+        <main
+          className="flex-1 flex flex-col mx-auto w-full max-w-6xl"
+          style={{ marginTop: 'calc(48px + max(env(safe-area-inset-top, 0px), 24px) + 8px)' }}
+        >
           {currentScreen === "home" && (
             <HomeScreen
               onDeviceUpload={handleDeviceUpload}
