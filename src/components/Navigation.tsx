@@ -1,81 +1,101 @@
 // src/components/Navigation.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Settings } from 'lucide-react';
-import { ConfigPanel } from './ConfigPanel';
-import { AppState } from '../types';
+import { useTheme } from '@/context/ThemeContext';
+import { ConfigModal } from './ConfigModal';
 
 interface NavigationProps {
-  onNavigate: (view: AppState) => void;
-  currentView: AppState | string;
   onBack?: () => void;
   showBackButton?: boolean;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
-  onNavigate,
-  currentView,
   onBack,
-  showBackButton = true
+  showBackButton = false
 }) => {
-  const handleBack = () => {
-    if (onBack) {
-      onBack();
-    } else {
-      onNavigate('UPLOAD');
-    }
-  };
+  const { mode } = useTheme();
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   return (
-    <header
-      className="
-        fixed top-0 left-0 right-0
-        h-12
-        flex items-center justify-between
-        px-4
-        bg-[var(--bg-void)]/95
-        backdrop-blur-sm
-        border-b border-white/5
-        z-50
-        safe-area-top
-      "
-    >
-      {/* Back Button - Left */}
-      <div className="w-10">
-        {showBackButton && currentView !== 'UPLOAD' ? (
-          <button
-            onClick={handleBack}
-            className="
-              w-10 h-10
-              flex items-center justify-center
-              rounded-full
-              active:bg-white/10
-              transition-colors duration-150
-            "
-            aria-label="Voltar"
-          >
-            <ArrowLeft className="w-5 h-5 text-[var(--text-primary)]" />
-          </button>
-        ) : (
-          <div className="w-10 h-10" />
-        )}
-      </div>
-
-      {/* Title - Center */}
-      <h1
-        className="
-          text-base font-semibold
-          text-[var(--text-primary)]
-          font-monaspice
-          tracking-wide
-        "
+    <>
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-4 h-12 transition-colors duration-300"
+        style={{
+          backgroundColor: 'var(--hotcocoa-header-bg)',
+          paddingTop: 'env(safe-area-inset-top)'
+        }}
       >
-        HotCocoa
-      </h1>
+        {/* Back Button - Left */}
+        <div className="flex-1">
+          {showBackButton && onBack && (
+            <button
+              onClick={onBack}
+              className="p-2 rounded-full hover:bg-white/10 transition-all duration-200 active:scale-95 touch-target"
+              aria-label="Voltar"
+              style={{
+                minWidth: '48px',
+                minHeight: '48px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <ArrowLeft
+                size={24}
+                style={{ color: 'var(--hotcocoa-text-secondary)' }}
+              />
+            </button>
+          )}
+        </div>
 
-      {/* Settings Button - Right */}
-      <div className="w-10">
-        <ConfigPanel />
-      </div>
-    </header>
+        {/* Title + Mode Badge - Center */}
+        <div className="flex items-center gap-2">
+          <h1
+            className="text-xl tracking-wide transition-colors duration-300"
+            style={{ color: 'var(--hotcocoa-accent)' }}
+          >
+            HotCocoa
+          </h1>
+          <div
+            className="px-2 py-0.5 rounded-full text-xs uppercase transition-all duration-300"
+            style={{
+              backgroundColor: 'var(--hotcocoa-accent)',
+              color: mode === 'warm' ? '#3d2817' : '#000',
+              fontSize: '10px',
+              fontWeight: 600,
+              letterSpacing: '0.5px'
+            }}
+          >
+            {mode}
+          </div>
+        </div>
+
+        {/* Settings Button - Right */}
+        <div className="flex-1 flex justify-end">
+          <button
+            onClick={() => setIsConfigOpen(true)}
+            className="p-2 rounded-full hover:bg-white/10 transition-all duration-200 active:scale-95 touch-target"
+            aria-label="Configuracoes"
+            style={{
+              minWidth: '48px',
+              minHeight: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <Settings
+              size={24}
+              style={{ color: 'var(--hotcocoa-text-secondary)' }}
+            />
+          </button>
+        </div>
+      </header>
+
+      <ConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+      />
+    </>
   );
 };
