@@ -16,64 +16,112 @@ export const Navigation: React.FC<NavigationProps> = ({ onNavigate, currentView,
   const { mode } = useTheme();
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-40 border-b border-white/5 bg-black/20 backdrop-blur-md">
-      <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        
-        {/* LOGO */}
+    <header
+      className="fixed top-0 left-0 right-0 z-40 header-mobile flex items-center"
+      style={{
+        background: 'rgba(10, 5, 6, 0.85)',
+        backdropFilter: 'blur(8px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+        paddingTop: 'var(--safe-area-top)'
+      }}
+    >
+      <div className="w-full px-4 h-full flex items-center justify-between">
+
+        {/* LOGO - compacto */}
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('UPLOAD')}>
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-white text-xs tracking-tighter transition-colors ${mode === 'HOT' ? 'bg-gradient-to-br from-rose-600 to-orange-600' : 'bg-gradient-to-br from-pink-500 to-amber-500'}`}>
+          <div
+            className="w-7 h-7 rounded-md flex items-center justify-center font-bold text-white text-[10px] tracking-tighter"
+            style={{
+              background: mode === 'HOT'
+                ? 'linear-gradient(135deg, var(--accent-rose), var(--accent-ember))'
+                : 'linear-gradient(135deg, #ec4899, #f59e0b)'
+            }}
+          >
             IO
           </div>
-          <span className="font-monaspice font-bold tracking-[0.2em] text-white text-sm uppercase">
-            INTIMACY<span className="opacity-50">OS</span>
+          <span
+            className="font-bold tracking-[0.15em] text-xs uppercase"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            INTIMACY<span style={{ opacity: 0.5 }}>OS</span>
           </span>
         </div>
 
-        {/* ACTIONS */}
-        <div className="flex items-center gap-4">
-          
+        {/* ACTIONS - compacto */}
+        <div className="flex items-center gap-2">
+
           <DropdownMenu.Root>
             <DropdownMenu.Trigger asChild>
-              <button className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-full text-xs font-medium text-white transition-colors outline-none">
-                <Menu className="w-4 h-4 opacity-70" />
-                <span className="uppercase tracking-wider">Protocolos</span>
+              <button
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-medium transition-colors outline-none touch-target"
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  color: 'var(--text-primary)',
+                  minHeight: '36px'
+                }}
+              >
+                <Menu className="w-3.5 h-3.5 opacity-70" />
+                <span className="uppercase tracking-wider hidden sm:inline">Protocolos</span>
                 <ChevronDown className="w-3 h-3 opacity-50" />
               </button>
             </DropdownMenu.Trigger>
 
             <DropdownMenu.Portal>
-              <DropdownMenu.Content className="min-w-[220px] bg-slate-900 border border-slate-700 rounded-xl p-2 shadow-2xl animate-slide-up-fade z-50 mr-6 mt-2">
-                <DropdownMenu.Item 
-                  className="group flex items-center gap-3 px-3 py-3 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg cursor-pointer outline-none transition-colors"
+              <DropdownMenu.Content
+                className="min-w-[200px] p-2 animate-slide-up-fade z-50 mr-4 mt-2"
+                style={{
+                  background: 'var(--bg-surface)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '12px',
+                  boxShadow: 'var(--shadow-3)'
+                }}
+              >
+                <DropdownMenu.Item
+                  className="group flex items-center gap-3 px-3 py-3 text-sm rounded-lg cursor-pointer outline-none transition-colors touch-target"
+                  style={{ color: 'var(--text-primary)' }}
                   onClick={() => onNavigate('VIEWING')}
                 >
-                  <div className="p-2 rounded bg-slate-800 group-hover:bg-rose-500/20 text-slate-400 group-hover:text-rose-500 transition-colors">
-                    <Play className="w-4 h-4 fill-current" />
+                  <div
+                    className="p-2 rounded transition-colors"
+                    style={{ background: 'var(--bg-elevated)' }}
+                  >
+                    <Play className="w-4 h-4 fill-current" style={{ color: 'var(--accent-rose)' }} />
                   </div>
                   <div>
-                    <div className="font-bold">Sessão Guiada</div>
-                    <div className="text-[10px] text-slate-500 group-hover:text-slate-400">Deck de Memórias</div>
+                    <div className="font-bold text-sm">Sessao Guiada</div>
+                    <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Deck de Memorias</div>
                   </div>
                 </DropdownMenu.Item>
 
-                <DropdownMenu.Item 
-                  className="group flex items-center gap-3 px-3 py-3 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg cursor-pointer outline-none transition-colors mt-1"
+                <DropdownMenu.Item
+                  className="group flex items-center gap-3 px-3 py-3 text-sm rounded-lg cursor-pointer outline-none transition-colors mt-1 touch-target"
+                  style={{ color: 'var(--text-primary)' }}
                   onClick={() => onNavigate('MOSAIC_SETUP')}
                 >
-                  <div className="p-2 rounded bg-slate-800 group-hover:bg-indigo-500/20 text-slate-400 group-hover:text-indigo-500 transition-colors">
-                    <Grid className="w-4 h-4 fill-current" />
+                  <div
+                    className="p-2 rounded transition-colors"
+                    style={{ background: 'var(--bg-elevated)' }}
+                  >
+                    <Grid className="w-4 h-4 fill-current" style={{ color: '#6366f1' }} />
                   </div>
                   <div>
-                    <div className="font-bold">Mosaico</div>
-                    <div className="text-[10px] text-slate-500 group-hover:text-slate-400">Reconstrução Visual</div>
+                    <div className="font-bold text-sm">Mosaico</div>
+                    <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Reconstrucao Visual</div>
                   </div>
                 </DropdownMenu.Item>
 
-                <DropdownMenu.Separator className="h-px bg-slate-800 my-2" />
+                <DropdownMenu.Separator
+                  className="h-px my-2"
+                  style={{ background: 'var(--bg-elevated)' }}
+                />
 
-                <DropdownMenu.Item disabled className="group flex items-center gap-3 px-3 py-2 text-sm text-slate-600 rounded-lg cursor-not-allowed opacity-50">
+                <DropdownMenu.Item
+                  disabled
+                  className="group flex items-center gap-3 px-3 py-2 text-sm rounded-lg cursor-not-allowed opacity-50"
+                  style={{ color: 'var(--text-dim)' }}
+                >
                   <History className="w-4 h-4" />
-                  <span>Histórico (Em Breve)</span>
+                  <span>Historico (Em Breve)</span>
                 </DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
@@ -82,17 +130,21 @@ export const Navigation: React.FC<NavigationProps> = ({ onNavigate, currentView,
           {onChatToggle && (
             <button
               onClick={onChatToggle}
-              className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+              className="p-2 rounded-lg transition-colors touch-target"
+              style={{ minHeight: '36px', minWidth: '36px' }}
               title="Chat com Assistente"
             >
-              <MessageCircle size={20} style={{ color: 'var(--accent-rose)' }} />
+              <MessageCircle size={18} style={{ color: 'var(--accent-rose)' }} />
             </button>
           )}
 
-          <div className="w-px h-6 bg-white/10 mx-1" />
+          <div
+            className="w-px h-5 mx-1"
+            style={{ background: 'rgba(255, 255, 255, 0.1)' }}
+          />
 
           <ConfigPanel />
-          
+
         </div>
       </div>
     </header>

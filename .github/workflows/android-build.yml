@@ -1,0 +1,76 @@
+name: Android Build
+
+on:
+  push:
+    branches: [main, work/*]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust Android targets
+        run: |
+          rustup target add aarch64-linux-android
+          rustup target add armv7-linux-androideabi
+          rustup target add i686-linux-android
+          rustup target add x86_64-linux-android
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Install Tauri CLI
+        run: bun add -g @tauri-apps/cli
+
+      - name: Setup Android NDK
+        run: |
+          sdkmanager --install "ndk;27.0.12077973"
+          echo "NDK_HOME=$ANDROID_HOME/ndk/27.0.12077973" >> $GITHUB_ENV
+
+      - name: Build Android APK (debug)
+        run: |
+          bun tauri android build --debug --target aarch64
+        env:
+          NDK_HOME: ${{ env.NDK_HOME }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hotcocoa-android-debug
+          path: |
+            src-tauri/gen/android/app/build/outputs/apk/universal/debug/*.apk
+            src-tauri/gen/android/app/build/outputs/apk/arm64/debug/*.apk
+          retention-days: 7
+
+      - name: Build info
+        run: |
+          echo "Build completed at $(date)"
+          ls -la src-tauri/gen/android/app/build/outputs/apk/ || true

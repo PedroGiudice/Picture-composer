@@ -21,19 +21,24 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onRemove }) => {
   }, [file]);
 
   return (
-    <div className="relative group aspect-square bg-slate-800">
+    <div className="relative group aspect-square rounded-lg overflow-hidden" style={{ background: 'var(--bg-surface)' }}>
       {url && (
-        <img 
-          src={url} 
-          alt="Preview" 
-          className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+        <img
+          src={url}
+          alt="Preview"
+          className="w-full h-full object-cover opacity-90"
         />
       )}
       <button
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
-        className="absolute top-1 right-1 p-1 bg-black/50 text-white hover:bg-rose-600 transition-colors"
+        className="absolute top-1 right-1 p-1.5 rounded-full touch-target flex items-center justify-center transition-colors"
+        style={{
+          background: 'rgba(0, 0, 0, 0.6)',
+          minHeight: '32px',
+          minWidth: '32px'
+        }}
       >
-        <X className="w-3 h-3" />
+        <X className="w-4 h-4" style={{ color: 'var(--text-primary)' }} />
       </button>
     </div>
   );
@@ -135,7 +140,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
 
   const handleGoogleClick = () => {
     if (!googleReady) return;
-    
+
     if (!getCredentials()) {
       setShowConfig(true);
       return;
@@ -158,7 +163,7 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-8 animate-fade-in relative">
+    <div className="w-full h-full px-4 py-6 animate-fade-in relative">
       <ConfigModal
         isOpen={showConfig}
         onClose={() => setShowConfig(false)}
@@ -168,36 +173,39 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         }}
       />
 
-      <div className="text-center space-y-4">
-        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white">
-          Nossas Memórias
+      {/* Header - Titulo SEM glow */}
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold tracking-tight text-title" style={{ color: 'var(--text-primary)' }}>
+          Nossas Memorias
         </h2>
-        <p className="text-slate-400 max-w-lg mx-auto">
-          Selecione fotos especiais de vocês dois. Vamos usar essas imagens para gerar momentos de conexão.
+        <p className="text-sm mt-2" style={{ color: 'var(--text-muted)' }}>
+          Selecione fotos especiais de voces dois
         </p>
         {photosPath && (
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center justify-center gap-2 text-xs mt-2" style={{ color: 'var(--text-dim)' }}>
             <FolderOpen className="w-3 h-3" />
-            <span>Fotos salvas em: <code className="bg-slate-800 px-1 py-0.5 rounded">{photosPath}</code></span>
+            <span className="truncate max-w-[200px]">{photosPath}</span>
           </div>
         )}
         {isLoadingLocal && (
-          <div className="flex items-center justify-center gap-2 text-xs text-slate-400">
+          <div className="flex items-center justify-center gap-2 text-xs mt-2" style={{ color: 'var(--text-dim)' }}>
             <Loader2 className="w-3 h-3 animate-spin" />
             <span>Carregando fotos locais...</span>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-        <FloatingCard delay={0.1} className="cursor-pointer group" onClick={triggerUpload}>
-          <div className="text-center py-8">
-            <Upload className="mx-auto mb-4" size={48} style={{ color: 'var(--accent-rose)' }} />
-            <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-              Upload do Dispositivo
+      {/* Menu Cards - Grid 2 colunas */}
+      <div className="menu-grid mb-6">
+        {/* Card: Upload do Dispositivo */}
+        <FloatingCard delay={0.1} className="cursor-pointer touch-target" onClick={triggerUpload}>
+          <div className="text-center py-6 px-3">
+            <Upload className="mx-auto mb-3" size={36} style={{ color: 'var(--accent-rose)' }} />
+            <h3 className="font-medium text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+              Upload
             </h3>
-            <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              JPG, PNG, WebP (max 10MB)
+            <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              Galeria local
             </p>
           </div>
           <input
@@ -210,35 +218,32 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
           />
         </FloatingCard>
 
+        {/* Card: Google Drive/Photos */}
         <div className="relative">
           <FloatingCard
             delay={0.2}
-            className={`cursor-pointer group ${!googleReady ? 'opacity-70' : ''}`}
+            className={`cursor-pointer touch-target ${!googleReady ? 'opacity-70' : ''}`}
             onClick={handleGoogleClick}
           >
-            <div className="text-center py-8">
+            <div className="text-center py-6 px-3">
               {isGoogleLoading ? (
-                <Loader2 className="mx-auto mb-4 animate-spin" size={48} style={{ color: 'var(--accent-ember)' }} />
+                <Loader2 className="mx-auto mb-3 animate-spin" size={36} style={{ color: 'var(--accent-ember)' }} />
               ) : (
-                <Cloud className="mx-auto mb-4" size={48} style={{ color: 'var(--accent-ember)' }} />
+                <Cloud className="mx-auto mb-3" size={36} style={{ color: 'var(--accent-ember)' }} />
               )}
-              <h3 className="font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                Google Drive & Photos
+              <h3 className="font-medium text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+                Google
               </h3>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                Conectar ao cloud
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                Drive & Photos
               </p>
-              {!googleReady && (
-                <p className="text-[10px] mt-2" style={{ color: 'var(--text-dim)' }}>
-                  Loading libraries...
-                </p>
-              )}
             </div>
           </FloatingCard>
           <button
             onClick={(e) => { e.stopPropagation(); setShowConfig(true); }}
-            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-white/5 transition-colors z-10"
-            title="Configure API Keys"
+            className="absolute top-2 right-2 p-2 rounded-lg transition-colors touch-target"
+            style={{ minHeight: '40px', minWidth: '40px' }}
+            title="Configurar API Keys"
           >
             <Settings
               className="w-4 h-4"
@@ -248,35 +253,41 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         </div>
       </div>
 
+      {/* Preview das fotos selecionadas */}
       {files.length > 0 && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
-             <h3 className="text-sm font-medium text-slate-400">{files.length} fotos selecionadas</h3>
-             <Button variant="outline" onClick={onClear} className="text-xs py-1 px-3 h-8">
-               Limpar Tudo
-             </Button>
+            <span className="text-xs font-medium" style={{ color: 'var(--text-muted)' }}>
+              {files.length} fotos
+            </span>
+            <Button variant="outline" onClick={onClear} className="text-xs py-1 px-3 h-8">
+              Limpar
+            </Button>
           </div>
-          <div className="grid grid-cols-3 md:grid-cols-5 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+
+          <div className="grid grid-cols-4 gap-2 max-h-[180px] overflow-y-auto pr-1 custom-scrollbar">
             {files.map((file, index) => (
-              <FilePreview 
-                key={`${file.name}-${index}`} 
-                file={file} 
-                onRemove={() => onRemove(index)} 
+              <FilePreview
+                key={`${file.name}-${index}`}
+                file={file}
+                onRemove={() => onRemove(index)}
               />
             ))}
           </div>
-          <div className="flex justify-center pt-8 border-t border-slate-800">
-            <Button onClick={onContinue} className="w-full md:w-auto min-w-[200px]">
-              Começar Experiência
+
+          <div className="pt-4 border-t" style={{ borderColor: 'var(--bg-elevated)' }}>
+            <Button onClick={onContinue} className="w-full touch-target">
+              Comecar Experiencia
             </Button>
           </div>
         </div>
       )}
-      
+
+      {/* Empty state */}
       {files.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-6 text-slate-600 space-y-2">
-            <ImageIcon className="w-8 h-8 opacity-20" />
-            <p className="text-sm">Nenhuma foto selecionada ainda</p>
+        <div className="flex flex-col items-center justify-center py-8" style={{ color: 'var(--text-dim)' }}>
+          <ImageIcon className="w-10 h-10 mb-2 opacity-30" />
+          <p className="text-xs">Nenhuma foto selecionada</p>
         </div>
       )}
     </div>
