@@ -1,12 +1,11 @@
-import VisibilityRounded from '@mui/icons-material/VisibilityRounded';
 import HomeRounded from '@mui/icons-material/HomeRounded';
 import SettingsRounded from '@mui/icons-material/SettingsRounded';
 import ChatRounded from '@mui/icons-material/ChatRounded';
 import { useTheme } from "@/context/ThemeContext";
 
 interface DemoControlsProps {
-  currentScreen: "home" | "viewing" | "chat";
-  onScreenChange: (screen: "home" | "viewing" | "chat") => void;
+  currentScreen: "home" | "chat";
+  onScreenChange: (screen: "home" | "chat") => void;
   onConfigOpen: () => void;
 }
 
@@ -22,13 +21,6 @@ export function DemoControls({ currentScreen, onScreenChange, onConfigOpen }: De
         borderRadius: '12px'
       }}
     >
-      <div 
-        className="text-xs mb-2 text-center transition-colors duration-300"
-        style={{ color: 'var(--hotcocoa-text-secondary)' }}
-      >
-        Demo
-      </div>
-      
       <button
         onClick={() => onScreenChange("home")}
         className={`p-2 rounded-lg transition-all duration-300 active:scale-95 ${currentScreen === "home" ? "scale-110" : "opacity-60"}`}
@@ -46,29 +38,6 @@ export function DemoControls({ currentScreen, onScreenChange, onConfigOpen }: De
           sx={{ 
             fontSize: 24, 
             color: currentScreen === "home" 
-              ? (mode === 'warm' ? '#3d2817' : '#000')
-              : 'var(--hotcocoa-text-primary)'
-          }} 
-        />
-      </button>
-
-      <button
-        onClick={() => onScreenChange("viewing")}
-        className={`p-2 rounded-lg transition-all duration-300 active:scale-95 ${currentScreen === "viewing" ? "scale-110" : "opacity-60"}`}
-        style={{ 
-          backgroundColor: currentScreen === "viewing" ? 'var(--hotcocoa-accent)' : 'transparent',
-          minWidth: '48px',
-          minHeight: '48px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center'
-        }}
-        title="Viewing Screen"
-      >
-        <VisibilityRounded 
-          sx={{ 
-            fontSize: 24, 
-            color: currentScreen === "viewing" 
               ? (mode === 'warm' ? '#3d2817' : '#000')
               : 'var(--hotcocoa-text-primary)'
           }} 

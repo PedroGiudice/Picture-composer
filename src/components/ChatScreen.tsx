@@ -1,34 +1,52 @@
 import { useState } from "react";
 import SendRounded from '@mui/icons-material/SendRounded';
 import { useTheme } from "@/context/ThemeContext";
+import { GameMasterChat, ChatMessage } from "@/services/gameMasterChat";
 
 export function ChatScreen() {
   const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Array<{ role: "user" | "assistant"; content: string }>>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
       content: "Ola! Eu sou o assistente HotCocoa. Como posso ajudar a personalizar sua experiencia hoje?"
     }
   ]);
+  const [isLoading, setIsLoading] = useState(false);
   const { mode } = useTheme();
 
-  const handleSend = () => {
-    if (!message.trim()) return;
-    
-    setMessages([...messages, { role: "user", content: message }]);
+  const handleSend = async () => {
+    if (!message.trim() || isLoading) return;
+
+    const userMessage: ChatMessage = { role: "user", content: message };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setMessage("");
-    
-    // Simulate AI response
-    setTimeout(() => {
+    setIsLoading(true);
+
+    try {
+      // Enviar para o GameMaster real via Modal.com
+      const response = await GameMasterChat.send(
+        updatedMessages,
+        "Voce e o assistente HotCocoa, um guia carinhoso e sensual para casais explorarem intimidade. Responda em portugues brasileiro de forma acolhedora e sugestiva."
+      );
+
       setMessages(prev => [...prev, {
         role: "assistant",
-        content: "Entendi! Posso ajustar as configuracoes para criar uma experiencia mais personalizada."
+        content: response
       }]);
-    }, 1000);
+    } catch (error) {
+      console.error("Erro no chat:", error);
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Desculpe, houve um erro na conexao. Tente novamente em alguns instantes."
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div 
+    <div
       className="flex-1 flex flex-col transition-colors duration-300"
       style={{ backgroundColor: 'var(--hotcocoa-bg)' }}
     >
@@ -42,10 +60,10 @@ export function ChatScreen() {
             <div
               className="max-w-[80%] p-4 rounded-2xl transition-colors duration-300"
               style={{
-                backgroundColor: msg.role === "user" 
-                  ? 'var(--hotcocoa-accent)' 
+                backgroundColor: msg.role === "user"
+                  ? 'var(--hotcocoa-accent)'
                   : 'var(--hotcocoa-card-bg)',
-                color: msg.role === "user" 
+                color: msg.role === "user"
                   ? (mode === 'warm' ? '#3d2817' : '#000')
                   : 'var(--hotcocoa-text-primary)',
                 borderRadius: '16px'
@@ -55,14 +73,30 @@ export function ChatScreen() {
             </div>
           </div>
         ))}
+
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="flex justify-start">
+            <div
+              className="p-4 rounded-2xl transition-colors duration-300"
+              style={{
+                backgroundColor: 'var(--hotcocoa-card-bg)',
+                color: 'var(--hotcocoa-text-secondary)',
+                borderRadius: '16px'
+              }}
+            >
+              <p className="text-sm animate-pulse">Digitando...</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Input Area - MD3 */}
-      <div 
+      <div
         className="p-4 border-t transition-colors duration-300"
-        style={{ 
+        style={{
           borderColor: 'var(--hotcocoa-border)',
-          backgroundColor: 'var(--hotcocoa-card-bg)' 
+          backgroundColor: 'var(--hotcocoa-card-bg)'
         }}
       >
         <div className="flex gap-2">
@@ -72,7 +106,8 @@ export function ChatScreen() {
             onChange={(e) => setMessage(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleSend()}
             placeholder="Digite sua mensagem..."
-            className="flex-1 px-4 py-3 rounded-xl bg-transparent border focus:outline-none transition-colors duration-300"
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 rounded-xl bg-transparent border focus:outline-none transition-colors duration-300 disabled:opacity-50"
             style={{
               borderColor: 'var(--hotcocoa-border)',
               color: 'var(--hotcocoa-text-primary)',
@@ -82,8 +117,9 @@ export function ChatScreen() {
           />
           <button
             onClick={handleSend}
-            className="p-3 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
-            style={{ 
+            disabled={isLoading || !message.trim()}
+            className="p-3 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
+            style={{
               backgroundColor: 'var(--hotcocoa-accent)',
               borderRadius: '12px',
               minWidth: '48px',
@@ -93,11 +129,11 @@ export function ChatScreen() {
               justifyContent: 'center'
             }}
           >
-            <SendRounded 
-              sx={{ 
-                fontSize: 24, 
-                color: mode === 'warm' ? '#3d2817' : '#000' 
-              }} 
+            <SendRounded
+              sx={{
+                fontSize: 24,
+                color: mode === 'warm' ? '#3d2817' : '#000'
+              }}
             />
           </button>
         </div>

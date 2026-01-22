@@ -1,36 +1,26 @@
 import { useState } from "react";
 import { Header } from "@/components/Header";
 import { HomeScreen } from "@/components/HomeScreen";
-import { ViewingScreen } from "@/components/ViewingScreen";
 import { ChatScreen } from "@/components/ChatScreen";
 import { ConfigModal } from "@/components/ConfigModal";
 import { DemoControls } from "@/components/DemoControls";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ThemeIndicator } from "@/components/ThemeIndicator";
 
-type Screen = "home" | "viewing" | "chat";
+type Screen = "home" | "chat";
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
-  
-  // Demo photo URL - replace with actual uploaded photos
-  const demoPhotoUrl = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&q=80";
 
   const handleDeviceUpload = () => {
-    // Simulate file upload - in real app, this would open file picker
+    // TODO: Implementar upload real via file picker
     console.log("Device upload clicked");
-    setCurrentScreen("viewing");
   };
 
   const handleGoogleDriveUpload = () => {
-    // Simulate Google Drive integration
+    // TODO: Implementar integracao real com Google Drive
     console.log("Google Drive upload clicked");
-  };
-
-  const handleStartProtocol = () => {
-    console.log("Starting protocol...");
-    // This would trigger the LLM analysis
   };
 
   return (
@@ -47,7 +37,7 @@ export default function App() {
         <Header
           onConfigClick={() => setIsConfigOpen(true)}
           onBackClick={() => setCurrentScreen("home")}
-          showBackButton={currentScreen === "viewing" || currentScreen === "chat"}
+          showBackButton={currentScreen === "chat"}
         />
 
         {/* Main Content - starts below header (48px + 8px margin = 56px) */}
@@ -60,24 +50,15 @@ export default function App() {
             />
           )}
 
-          {currentScreen === "viewing" && (
-            <ViewingScreen
-              photoUrl={demoPhotoUrl}
-              currentRound={1}
-              totalRounds={1}
-              onStartProtocol={handleStartProtocol}
-            />
-          )}
-
           {currentScreen === "chat" && <ChatScreen />}
         </main>
 
         {/* Footer Version */}
-        <footer 
+        <footer
           className="py-2 text-center"
           style={{ backgroundColor: 'var(--hotcocoa-bg)' }}
         >
-          <span 
+          <span
             className="text-xs opacity-40"
             style={{ color: 'var(--hotcocoa-text-secondary)' }}
           >
@@ -91,7 +72,7 @@ export default function App() {
           onClose={() => setIsConfigOpen(false)}
         />
 
-        {/* Demo Controls */}
+        {/* Navigation Controls */}
         <DemoControls
           currentScreen={currentScreen}
           onScreenChange={setCurrentScreen}
