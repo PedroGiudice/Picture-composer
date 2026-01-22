@@ -4,13 +4,17 @@ import { PhotoUploader } from './components/PhotoUploader';
 import { MemoryViewer } from './components/MemoryViewer';
 import { MosaicCreator } from './components/MosaicCreator';
 import { Navigation } from './components/Navigation';
+import { DemoControls } from './components/DemoControls';
+import { ChatScreen } from './components/ChatScreen';
+import { ConfigModal } from './components/ConfigModal';
 import { ThemeProvider } from './context/ThemeContext';
 
-type Screen = 'home' | 'viewing' | 'mosaic';
+type Screen = 'home' | 'viewing' | 'mosaic' | 'chat';
 
 const HotCocoaApp: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   const handleUpload = (newFiles: File[]) => {
     setUploadedFiles(prev => [...prev, ...newFiles]);
@@ -36,7 +40,7 @@ const HotCocoaApp: React.FC = () => {
   };
 
   const goBack = () => {
-    if (currentScreen === 'viewing' || currentScreen === 'mosaic') {
+    if (currentScreen === 'viewing' || currentScreen === 'mosaic' || currentScreen === 'chat') {
       setCurrentScreen('home');
     }
   };
@@ -59,7 +63,7 @@ const HotCocoaApp: React.FC = () => {
       {/* Main Content - starts below header (48px + safe area) */}
       <main
         className="flex-1 flex flex-col overflow-hidden"
-        style={{ marginTop: 'calc(48px + env(safe-area-inset-top))' }}
+        style={{ marginTop: '56px' }}
       >
         {currentScreen === 'home' && (
           <PhotoUploader
@@ -81,7 +85,22 @@ const HotCocoaApp: React.FC = () => {
         {currentScreen === 'mosaic' && (
           <MosaicCreator sourceFiles={uploadedFiles} />
         )}
+
+        {currentScreen === 'chat' && <ChatScreen />}
       </main>
+
+      {/* Demo Controls */}
+      <DemoControls
+        currentScreen={currentScreen}
+        onScreenChange={setCurrentScreen}
+        onConfigOpen={() => setIsConfigOpen(true)}
+      />
+
+      {/* Config Modal */}
+      <ConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+      />
 
       {/* Footer Version */}
       <footer
