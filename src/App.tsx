@@ -4,17 +4,13 @@ import { PhotoUploader } from './components/PhotoUploader';
 import { MemoryViewer } from './components/MemoryViewer';
 import { MosaicCreator } from './components/MosaicCreator';
 import { Navigation } from './components/Navigation';
-import { ChatDrawer } from './components/ChatDrawer';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { MotionBackground } from './components/ui/MotionBackground';
-import { AppState } from './types';
+import { ThemeProvider } from './context/ThemeContext';
 
-// Inner App Component to consume ThemeContext
-const IntimacyApp: React.FC = () => {
-  const [appState, setAppState] = useState<AppState>(AppState.UPLOAD);
+type Screen = 'home' | 'viewing' | 'mosaic';
+
+const HotCocoaApp: React.FC = () => {
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const { mode } = useTheme();
 
   const handleUpload = (newFiles: File[]) => {
     setUploadedFiles(prev => [...prev, ...newFiles]);
@@ -30,65 +26,83 @@ const IntimacyApp: React.FC = () => {
 
   const startExperience = () => {
     if (uploadedFiles.length > 0) {
-      setAppState(AppState.VIEWING);
+      setCurrentScreen('viewing');
     }
   };
 
   const resetExperience = () => {
-    setAppState(AppState.UPLOAD);
+    setCurrentScreen('home');
     setUploadedFiles([]);
   };
 
+  const goBack = () => {
+    if (currentScreen === 'viewing' || currentScreen === 'mosaic') {
+      setCurrentScreen('home');
+    }
+  };
+
   return (
-    <MotionBackground intensity="subtle">
-      <div className="relative min-h-screen font-monaspice overflow-hidden transition-colors duration-1000">
+    <div
+      className="h-screen w-full flex flex-col overflow-hidden transition-colors duration-300"
+      style={{
+        backgroundColor: 'var(--hotcocoa-bg)',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)'
+      }}
+    >
+      {/* Fixed Header */}
+      <Navigation
+        onBack={goBack}
+        showBackButton={currentScreen !== 'home'}
+      />
 
-        <Navigation
-          onNavigate={setAppState}
-          currentView={appState}
-          onChatToggle={() => setIsChatOpen(prev => !prev)}
-        />
+      {/* Main Content - starts below header (48px + safe area) */}
+      <main
+        className="flex-1 flex flex-col overflow-hidden"
+        style={{ marginTop: 'calc(48px + env(safe-area-inset-top))' }}
+      >
+        {currentScreen === 'home' && (
+          <PhotoUploader
+            files={uploadedFiles}
+            onUpload={handleUpload}
+            onClear={handleClear}
+            onRemove={handleRemoveFile}
+            onContinue={startExperience}
+          />
+        )}
 
-        <main className="relative z-10 pt-24 pb-12 px-6 flex flex-col items-center justify-center min-h-screen">
-          <div className="w-full max-w-7xl mx-auto">
-            {appState === AppState.UPLOAD && (
-              <PhotoUploader
-                files={uploadedFiles}
-                onUpload={handleUpload}
-                onClear={handleClear}
-                onRemove={handleRemoveFile}
-                onContinue={startExperience}
-              />
-            )}
-            {appState === AppState.VIEWING && (
-              <MemoryViewer
-                files={uploadedFiles}
-                onReset={resetExperience}
-              />
-            )}
-            {appState === AppState.MOSAIC_SETUP && (
-              <MosaicCreator sourceFiles={uploadedFiles} />
-            )}
-          </div>
-        </main>
+        {currentScreen === 'viewing' && (
+          <MemoryViewer
+            files={uploadedFiles}
+            onReset={resetExperience}
+          />
+        )}
 
-        <footer className="relative z-10 w-full py-6 text-center border-t border-white/5">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-white/20">
-            Intimacy OS v4.0 // {mode} Mode Active
-          </p>
-        </footer>
+        {currentScreen === 'mosaic' && (
+          <MosaicCreator sourceFiles={uploadedFiles} />
+        )}
+      </main>
 
-        <ChatDrawer isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-      </div>
-    </MotionBackground>
+      {/* Footer Version */}
+      <footer
+        className="py-2 text-center"
+        style={{ backgroundColor: 'var(--hotcocoa-bg)' }}
+      >
+        <span
+          className="text-xs opacity-40"
+          style={{ color: 'var(--hotcocoa-text-secondary)' }}
+        >
+          v0.0.1
+        </span>
+      </footer>
+    </div>
   );
 };
 
-// Root Component
 const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <IntimacyApp />
+      <HotCocoaApp />
     </ThemeProvider>
   );
 };
