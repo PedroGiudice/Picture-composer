@@ -54,6 +54,7 @@ Não crie hooks para cada erro - documente aqui primeiro. Esta seção cresce or
 | Data | Erro | Regra |
 |------|------|-------|
 | 2026-01-18 | (Inicializado) | Ver regras críticas acima |
+| 2026-01-22 | Sugeriu buildar APK no PC quando já existia na VM | Artefatos buildados na VM devem ser copiados, não rebuildados |
 
 <!--
 Formato para adicionar:

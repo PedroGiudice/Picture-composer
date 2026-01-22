@@ -1,129 +1,105 @@
-// src/App.tsx
-import React, { useState } from 'react';
-import { PhotoUploader } from './components/PhotoUploader';
-import { MemoryViewer } from './components/MemoryViewer';
-import { MosaicCreator } from './components/MosaicCreator';
-import { Navigation } from './components/Navigation';
-import { DemoControls } from './components/DemoControls';
-import { ChatScreen } from './components/ChatScreen';
-import { ConfigModal } from './components/ConfigModal';
-import { ThemeProvider } from './context/ThemeContext';
+import { useState } from "react";
+import { Header } from "@/components/Header";
+import { HomeScreen } from "@/components/HomeScreen";
+import { ViewingScreen } from "@/components/ViewingScreen";
+import { ChatScreen } from "@/components/ChatScreen";
+import { ConfigModal } from "@/components/ConfigModal";
+import { DemoControls } from "@/components/DemoControls";
+import { ThemeProvider } from "@/context/ThemeContext";
+import { ThemeIndicator } from "@/components/ThemeIndicator";
 
-type Screen = 'home' | 'viewing' | 'mosaic' | 'chat';
+type Screen = "home" | "viewing" | "chat";
 
-const HotCocoaApp: React.FC = () => {
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  
+  // Demo photo URL - replace with actual uploaded photos
+  const demoPhotoUrl = "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=800&q=80";
 
-  const handleUpload = (newFiles: File[]) => {
-    setUploadedFiles(prev => [...prev, ...newFiles]);
+  const handleDeviceUpload = () => {
+    // Simulate file upload - in real app, this would open file picker
+    console.log("Device upload clicked");
+    setCurrentScreen("viewing");
   };
 
-  const handleClear = () => {
-    setUploadedFiles([]);
+  const handleGoogleDriveUpload = () => {
+    // Simulate Google Drive integration
+    console.log("Google Drive upload clicked");
   };
 
-  const handleRemoveFile = (index: number) => {
-    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  const handleStartProtocol = () => {
+    console.log("Starting protocol...");
+    // This would trigger the LLM analysis
   };
 
-  const startExperience = () => {
-    if (uploadedFiles.length > 0) {
-      setCurrentScreen('viewing');
-    }
-  };
-
-  const resetExperience = () => {
-    setCurrentScreen('home');
-    setUploadedFiles([]);
-  };
-
-  const goBack = () => {
-    if (currentScreen === 'viewing' || currentScreen === 'mosaic' || currentScreen === 'chat') {
-      setCurrentScreen('home');
-    }
-  };
-
-  return (
-    <div
-      className="h-screen w-full flex flex-col overflow-hidden transition-colors duration-300"
-      style={{
-        backgroundColor: 'var(--hotcocoa-bg)',
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)'
-      }}
-    >
-      {/* Fixed Header */}
-      <Navigation
-        onBack={goBack}
-        showBackButton={currentScreen !== 'home'}
-      />
-
-      {/* Main Content - starts below header (48px + safe area) */}
-      <main
-        className="flex-1 flex flex-col overflow-hidden"
-        style={{ marginTop: '56px' }}
-      >
-        {currentScreen === 'home' && (
-          <PhotoUploader
-            files={uploadedFiles}
-            onUpload={handleUpload}
-            onClear={handleClear}
-            onRemove={handleRemoveFile}
-            onContinue={startExperience}
-          />
-        )}
-
-        {currentScreen === 'viewing' && (
-          <MemoryViewer
-            files={uploadedFiles}
-            onReset={resetExperience}
-          />
-        )}
-
-        {currentScreen === 'mosaic' && (
-          <MosaicCreator sourceFiles={uploadedFiles} />
-        )}
-
-        {currentScreen === 'chat' && <ChatScreen />}
-      </main>
-
-      {/* Demo Controls */}
-      <DemoControls
-        currentScreen={currentScreen}
-        onScreenChange={setCurrentScreen}
-        onConfigOpen={() => setIsConfigOpen(true)}
-      />
-
-      {/* Config Modal */}
-      <ConfigModal
-        isOpen={isConfigOpen}
-        onClose={() => setIsConfigOpen(false)}
-      />
-
-      {/* Footer Version */}
-      <footer
-        className="py-2 text-center"
-        style={{ backgroundColor: 'var(--hotcocoa-bg)' }}
-      >
-        <span
-          className="text-xs opacity-40"
-          style={{ color: 'var(--hotcocoa-text-secondary)' }}
-        >
-          v0.0.1
-        </span>
-      </footer>
-    </div>
-  );
-};
-
-const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <HotCocoaApp />
+      <div 
+        className="h-screen w-full flex flex-col overflow-hidden transition-colors duration-300"
+        style={{ 
+          backgroundColor: 'var(--hotcocoa-bg)',
+          paddingTop: 'env(safe-area-inset-top)',
+          paddingBottom: 'env(safe-area-inset-bottom)'
+        }}
+      >
+        {/* Fixed Header */}
+        <Header 
+          onConfigClick={() => setIsConfigOpen(true)} 
+          onBackClick={() => setCurrentScreen("home")}
+          showBackButton={currentScreen === "viewing" || currentScreen === "chat"}
+        />
+
+        {/* Main Content - starts below header (48px + 8px margin = 56px) */}
+        <main className="flex-1 flex flex-col" style={{ marginTop: '56px' }}>
+          {currentScreen === "home" && (
+            <HomeScreen
+              onDeviceUpload={handleDeviceUpload}
+              onGoogleDriveUpload={handleGoogleDriveUpload}
+            />
+          )}
+
+          {currentScreen === "viewing" && (
+            <ViewingScreen
+              photoUrl={demoPhotoUrl}
+              currentRound={1}
+              totalRounds={1}
+              onStartProtocol={handleStartProtocol}
+            />
+          )}
+
+          {currentScreen === "chat" && <ChatScreen />}
+        </main>
+
+        {/* Footer Version */}
+        <footer 
+          className="py-2 text-center"
+          style={{ backgroundColor: 'var(--hotcocoa-bg)' }}
+        >
+          <span 
+            className="text-xs opacity-40"
+            style={{ color: 'var(--hotcocoa-text-secondary)' }}
+          >
+            v0.0.1
+          </span>
+        </footer>
+
+        {/* Configuration Modal */}
+        <ConfigModal
+          isOpen={isConfigOpen}
+          onClose={() => setIsConfigOpen(false)}
+        />
+
+        {/* Demo Controls */}
+        <DemoControls
+          currentScreen={currentScreen}
+          onScreenChange={setCurrentScreen}
+          onConfigOpen={() => setIsConfigOpen(true)}
+        />
+
+        {/* Theme Change Indicator */}
+        <ThemeIndicator />
+      </div>
     </ThemeProvider>
   );
-};
-
-export default App;
+}
