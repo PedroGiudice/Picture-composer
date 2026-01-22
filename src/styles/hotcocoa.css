@@ -1,5 +1,4 @@
-/* src/styles/hotcocoa.css */
-/* HotCocoa App Custom Styles - Figma Design System */
+/* HotCocoa App Custom Styles */
 
 /* Smooth theme transitions */
 :root,
@@ -28,7 +27,7 @@ input::placeholder {
   opacity: 0.5;
 }
 
-/* Custom input range styling */
+/* Custom input range styling for ConfigModal */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -39,8 +38,8 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--hotcocoa-text-primary);
   border: 2px solid var(--hotcocoa-accent);
@@ -56,15 +55,9 @@ input[type="range"]::-webkit-slider-thumb:active {
   transform: scale(1.15);
 }
 
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--hotcocoa-border);
-}
-
 input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--hotcocoa-text-primary);
   border: 2px solid var(--hotcocoa-accent);
@@ -72,10 +65,12 @@ input[type="range"]::-moz-range-thumb {
   transition: all 0.2s;
 }
 
-input[type="range"]::-moz-range-track {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--hotcocoa-border);
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.1);
+}
+
+input[type="range"]::-moz-range-thumb:active {
+  transform: scale(1.15);
 }
 
 /* Prevent text selection on touch devices */
@@ -90,7 +85,7 @@ input[type="range"]::-moz-range-track {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Safe area insets for notched devices - CRITICAL FOR ANDROID */
+/* Safe area insets for notched devices */
 @supports (padding: max(0px)) {
   body {
     padding-top: env(safe-area-inset-top);
@@ -98,23 +93,4 @@ input[type="range"]::-moz-range-track {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
-}
-
-/* Touch targets - WCAG 2.1 AA minimum 48x48px */
-.touch-target {
-  min-width: 48px;
-  min-height: 48px;
-}
-
-/* MD3 Elevation */
-.elevation-1 {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-}
-
-.elevation-2 {
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
-}
-
-.elevation-3 {
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.19), 0 6px 6px rgba(0, 0, 0, 0.23);
 }

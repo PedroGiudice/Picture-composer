@@ -1,0 +1,75 @@
+/* Material Design 3 Ripple Effect */
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+button {
+  position: relative;
+  overflow: hidden;
+}
+
+button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.3);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1) translate(-50%, -50%);
+  transform-origin: 50% 50%;
+}
+
+button:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+/* MD3 Elevation Shadows */
+.md3-elevation-1 {
+  box-shadow: 
+    0px 1px 2px rgba(0, 0, 0, 0.3),
+    0px 1px 3px 1px rgba(0, 0, 0, 0.15);
+}
+
+.md3-elevation-2 {
+  box-shadow: 
+    0px 1px 2px rgba(0, 0, 0, 0.3),
+    0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+}
+
+.md3-elevation-3 {
+  box-shadow: 
+    0px 1px 3px rgba(0, 0, 0, 0.3),
+    0px 4px 8px 3px rgba(0, 0, 0, 0.15);
+}
+
+/* MD3 Shape System */
+.md3-shape-xs {
+  border-radius: 4px;
+}
+
+.md3-shape-sm {
+  border-radius: 8px;
+}
+
+.md3-shape-md {
+  border-radius: 12px;
+}
+
+.md3-shape-lg {
+  border-radius: 16px;
+}
+
+.md3-shape-xl {
+  border-radius: 24px;
+}
+
+.md3-shape-full {
+  border-radius: 9999px;
+}
