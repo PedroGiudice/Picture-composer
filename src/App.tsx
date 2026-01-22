@@ -35,23 +35,24 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      <div 
+      <div
         className="h-screen w-full flex flex-col overflow-hidden transition-colors duration-300"
-        style={{ 
+        style={{
           backgroundColor: 'var(--hotcocoa-bg)',
           paddingTop: 'env(safe-area-inset-top)',
           paddingBottom: 'env(safe-area-inset-bottom)'
         }}
       >
         {/* Fixed Header */}
-        <Header 
-          onConfigClick={() => setIsConfigOpen(true)} 
+        <Header
+          onConfigClick={() => setIsConfigOpen(true)}
           onBackClick={() => setCurrentScreen("home")}
           showBackButton={currentScreen === "viewing" || currentScreen === "chat"}
         />
 
         {/* Main Content - starts below header (48px + 8px margin = 56px) */}
-        <main className="flex-1 flex flex-col" style={{ marginTop: '56px' }}>
+        {/* Desktop: centered with max-width | Mobile: full width */}
+        <main className="flex-1 flex flex-col mx-auto w-full max-w-6xl" style={{ marginTop: '56px' }}>
           {currentScreen === "home" && (
             <HomeScreen
               onDeviceUpload={handleDeviceUpload}

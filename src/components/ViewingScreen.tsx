@@ -20,28 +20,39 @@ export function ViewingScreen({
   const { mode } = useTheme();
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Photo Display Area */}
-      <div 
-        className="w-full flex items-center justify-center overflow-hidden relative transition-colors duration-300"
-        style={{ 
-          height: '45%',
+    <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      {/* Photo Display Area - Mobile: 45% height | Desktop: 50% width */}
+      <div
+        className="w-full lg:w-1/2 flex items-center justify-center overflow-hidden relative transition-colors duration-300 h-[45%] lg:h-full"
+        style={{
           backgroundColor: 'var(--hotcocoa-bg)'
         }}
       >
-        <img 
+        <img
           src={photoUrl}
           alt="Memory"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover lg:rounded-r-2xl"
         />
+        {/* Round Indicator - Desktop: overlay on photo */}
+        <div
+          className="hidden lg:block absolute bottom-4 left-4 px-4 py-2 rounded-lg"
+          style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+        >
+          <span
+            className="text-sm transition-colors duration-300"
+            style={{ color: 'var(--hotcocoa-text-primary)' }}
+          >
+            Rodada {currentRound} de {totalRounds}
+          </span>
+        </div>
       </div>
 
-      {/* Round Indicator */}
-      <div 
-        className="py-3 text-center transition-colors duration-300"
+      {/* Round Indicator - Mobile only */}
+      <div
+        className="py-3 text-center transition-colors duration-300 lg:hidden"
         style={{ backgroundColor: 'var(--hotcocoa-bg)' }}
       >
-        <span 
+        <span
           className="text-sm transition-colors duration-300"
           style={{ color: 'var(--hotcocoa-text-secondary)' }}
         >
@@ -49,9 +60,9 @@ export function ViewingScreen({
         </span>
       </div>
 
-      {/* Control Area - MD3 Card */}
-      <div 
-        className="flex-1 flex flex-col px-6 pt-8 pb-24 transition-colors duration-300"
+      {/* Control Area - MD3 Card - Mobile: bottom | Desktop: right side */}
+      <div
+        className="flex-1 lg:w-1/2 flex flex-col px-6 lg:px-12 pt-8 lg:pt-12 pb-24 lg:pb-12 lg:justify-center transition-colors duration-300"
         style={{ backgroundColor: 'var(--hotcocoa-card-bg)' }}
       >
         {/* Action Title */}
