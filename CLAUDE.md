@@ -59,6 +59,7 @@ Não crie hooks para cada erro - documente aqui primeiro. Esta seção cresce or
 | 2026-01-22 | Substituiu MUI Icons por Lucide sem ser pedido | **NUNCA** substituir bibliotecas/frameworks sem autorização |
 | 2026-01-22 | Não copiou os arquivos CSS do Figma | Copiar TUDO: componentes TSX E arquivos CSS |
 | 2026-01-22 | Múltiplas iterações para algo simples | Seguir o código fonte, não "interpretar" |
+| 2026-01-22 | Usou IP errado da VM (inventou 152.70.53.30) | **SEMPRE** verificar IP com `curl ifconfig.me` antes de comandos scp/ssh |
 
 <!--
 Formato para adicionar:
