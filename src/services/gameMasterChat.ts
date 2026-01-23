@@ -4,7 +4,7 @@
  */
 
 const CHAT_URL = import.meta.env.VITE_MODAL_CHAT_URL ||
-  "https://pedrogiudice--picture-composer-backend-a100-chat-with-game-master.modal.run";
+  "https://pedrogiudice--picture-composer-backend-a100-chat-with-ga-a943d1.modal.run";
 
 export interface ChatMessage {
   role: 'user' | 'assistant';

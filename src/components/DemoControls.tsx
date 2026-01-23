@@ -3,6 +3,7 @@ import Draggable, { DraggableData, DraggableEvent } from "react-draggable";
 import HomeRounded from '@mui/icons-material/HomeRounded';
 import SettingsRounded from '@mui/icons-material/SettingsRounded';
 import ChatRounded from '@mui/icons-material/ChatRounded';
+import DescriptionRounded from '@mui/icons-material/DescriptionRounded';
 import DragIndicatorRounded from '@mui/icons-material/DragIndicatorRounded';
 import { useTheme } from "@/context/ThemeContext";
 
@@ -10,6 +11,7 @@ interface DemoControlsProps {
   currentScreen: "home" | "chat";
   onScreenChange: (screen: "home" | "chat") => void;
   onConfigOpen: () => void;
+  onSystemPromptOpen: () => void;
 }
 
 // Chave para persistir posicao no localStorage
@@ -28,7 +30,7 @@ const getDefaultPosition = () => {
   return { x: 0, y: 0 };
 };
 
-export function DemoControls({ currentScreen, onScreenChange, onConfigOpen }: DemoControlsProps) {
+export function DemoControls({ currentScreen, onScreenChange, onConfigOpen, onSystemPromptOpen }: DemoControlsProps) {
   const { mode } = useTheme();
   const nodeRef = useRef(null);
   const [position, setPosition] = useState(getDefaultPosition);
@@ -117,6 +119,26 @@ export function DemoControls({ currentScreen, onScreenChange, onConfigOpen }: De
               color: currentScreen === "chat"
                 ? (mode === 'warm' ? '#3d2817' : '#000')
                 : 'var(--hotcocoa-text-primary)'
+            }}
+          />
+        </button>
+
+        <button
+          onClick={onSystemPromptOpen}
+          className="p-2 rounded-lg transition-all duration-300 opacity-60 hover:opacity-100 active:scale-95"
+          style={{
+            minWidth: '48px',
+            minHeight: '48px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          title="System Prompt"
+        >
+          <DescriptionRounded
+            sx={{
+              fontSize: 24,
+              color: 'var(--hotcocoa-text-primary)'
             }}
           />
         </button>

@@ -3,9 +3,9 @@
 // Backend v2: JoyCaption (VLM) + Midnight Rose AWQ (LLM)
 
 const BACKEND_URL = import.meta.env.VITE_MODAL_BACKEND_URL ||
-  "https://pedrogiudice--picture-composer-backend-a100-process-intimacy-request.modal.run";
+  "https://pedrogiudice--picture-composer-backend-a100-process-inti-cc48af.modal.run";
 const MOSAIC_BACKEND_URL = import.meta.env.VITE_MODAL_MOSAIC_URL ||
-  "https://pedrogiudice--picture-composer-backend-a100-process-mosaic-request.modal.run";
+  "https://pedrogiudice--picture-composer-backend-a100-process-mosa-f668fe.modal.run";
 
 /**
  * Interface alinhada com o backend.py (Modal.com)

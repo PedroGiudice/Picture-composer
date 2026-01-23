@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { HomeScreen } from "@/components/HomeScreen";
 import { ChatScreen } from "@/components/ChatScreen";
 import { ConfigModal } from "@/components/ConfigModal";
+import { SystemPromptModal } from "@/components/SystemPromptModal";
 import { DemoControls } from "@/components/DemoControls";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ThemeIndicator } from "@/components/ThemeIndicator";
@@ -12,6 +13,7 @@ type Screen = "home" | "chat";
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
 
   const handleDeviceUpload = () => {
     // TODO: Implementar upload real via file picker
@@ -80,6 +82,13 @@ export default function App() {
           currentScreen={currentScreen}
           onScreenChange={setCurrentScreen}
           onConfigOpen={() => setIsConfigOpen(true)}
+          onSystemPromptOpen={() => setIsSystemPromptOpen(true)}
+        />
+
+        {/* System Prompt Modal */}
+        <SystemPromptModal
+          isOpen={isSystemPromptOpen}
+          onClose={() => setIsSystemPromptOpen(false)}
         />
 
         {/* Theme Change Indicator */}

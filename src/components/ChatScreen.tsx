@@ -2,6 +2,7 @@ import { useState } from "react";
 import SendRounded from '@mui/icons-material/SendRounded';
 import { useTheme } from "@/context/ThemeContext";
 import { GameMasterChat, ChatMessage } from "@/services/gameMasterChat";
+import { getSystemPrompt } from "@/components/SystemPromptModal";
 
 export function ChatScreen() {
   const [message, setMessage] = useState("");
@@ -24,10 +25,20 @@ export function ChatScreen() {
     setIsLoading(true);
 
     try {
-      // Enviar para o GameMaster real via Modal.com
+      // Meta-prompt: ajuda o usuario a customizar o system prompt principal
+      const currentPrompt = getSystemPrompt();
+      const metaPrompt = `Voce e um assistente que ajuda o usuario a customizar o System Prompt do app HotCocoa.
+O System Prompt atual e:
+---
+${currentPrompt}
+---
+Quando o usuario descrever um contexto (ex: "estamos num restaurante"), sugira ajustes especificos para o prompt.
+Responda em portugues brasileiro de forma clara e objetiva.
+Formate sugestoes de forma que o usuario possa copiar e colar no prompt.`;
+
       const response = await GameMasterChat.send(
         updatedMessages,
-        "Voce e o assistente HotCocoa, um guia carinhoso e sensual para casais explorarem intimidade. Responda em portugues brasileiro de forma acolhedora e sugestiva."
+        metaPrompt
       );
 
       setMessages(prev => [...prev, {
