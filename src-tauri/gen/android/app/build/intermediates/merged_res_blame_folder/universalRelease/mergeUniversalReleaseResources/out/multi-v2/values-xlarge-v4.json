@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.hotcocoa.desktop.app-mergeUniversalReleaseResources-41:/values-xlarge-v4/values-xlarge-v4.xml",
+            "outputFile": "com.hotcocoa.desktop.app-mergeUniversalReleaseResources-42:/values-xlarge-v4/values-xlarge-v4.xml",
             "map": [
                 {
-                    "source": "/home/cmr-auto/.gradle/caches/8.14.3/transforms/1db6f0fb0ad01d08aa6a440d5093bf83/transformed/appcompat-1.7.1/res/values-xlarge-v4/values-xlarge-v4.xml",
+                    "source": "/home/opc/.gradle/caches/8.14.3/transforms/b46de758bbeb8436f9bb60b9ce6a835a/transformed/appcompat-1.7.1/res/values-xlarge-v4/values-xlarge-v4.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7",
                         "startColumns": "4,4,4,4,4,4",

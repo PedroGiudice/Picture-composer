@@ -6,7 +6,7 @@
     shrinking="true"
     mergedManifest="build/intermediates/merged_manifest/universalRelease/processUniversalReleaseMainManifest/AndroidManifest.xml"
     manifestMergeReport="build/outputs/logs/manifest-merger-universal-release-report.txt"
-    proguardFiles="src/main/java/com/hotcocoa/desktop/generated/proguard-wry.pro:proguard-tauri.pro:proguard-rules.pro:build/intermediates/default_proguard_files/global/proguard-android-optimize.txt-8.11.0"
+    proguardFiles="proguard-rules.pro:proguard-tauri.pro:src/main/java/com/hotcocoa/desktop/generated/proguard-wry.pro:build/intermediates/default_proguard_files/global/proguard-android-optimize.txt-8.11.0"
     partialResultsDir="build/intermediates/lint_vital_partial_results/universalRelease/lintVitalAnalyzeUniversalRelease/out">
   <buildFeatures
       namespacing="REQUIRED"/>
@@ -32,6 +32,6 @@
       applicationId="com.hotcocoa.desktop"
       generatedSourceFolders="build/generated/ap_generated_sources/universalRelease/out:build/generated/source/buildConfig/universal/release"
       generatedResourceFolders="build/generated/res/resValues/universal/release"
-      desugaredMethodsFiles="/home/cmr-auto/.gradle/caches/8.14.3/transforms/61a31ee61241657f1f21926bff323188/transformed/D8BackportedDesugaredMethods.txt">
+      desugaredMethodsFiles="/home/opc/.gradle/caches/8.14.3/transforms/e609a7a1223dfa76af06b8e675b25e2f/transformed/D8BackportedDesugaredMethods.txt">
   </artifact>
 </variant>

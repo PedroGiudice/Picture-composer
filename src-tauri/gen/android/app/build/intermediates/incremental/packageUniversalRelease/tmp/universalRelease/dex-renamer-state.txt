@@ -1,4 +1,4 @@
-#Tue Jan 20 18:46:47 BRT 2026
-base.0=/home/cmr-auto/claude-work/repos/Picture-composer/src-tauri/gen/android/app/build/intermediates/dex/universalRelease/minifyUniversalReleaseWithR8/classes.dex
-renamed.0=classes.dex
+#Fri Jan 23 03:38:39 GMT 2026
+base.0=/home/opc/Picture-composer/src-tauri/gen/android/app/build/intermediates/dex/universalRelease/minifyUniversalReleaseWithR8/classes.dex
 path.0=classes.dex
+renamed.0=classes.dex

@@ -2,100 +2,75 @@
 
 ## Project Identity
 
-**Project:** Picture Composer (Couple's Memory Deck)
-**Goal:** Dual-stack application for romantic memory curation with AI-powered intimacy experiences.
+**Project:** HotCocoa (formerly Picture Composer)
+**Goal:** Dual-stack application (Tauri/React + Flutter) for romantic memory curation with AI-powered intimacy experiences.
+**Core Philosophy:** Somatic connection through visual memories.
 
 ---
 
 ## Architecture
 
-### Frontend (React/Vite)
+### Frontend (Dual-Stack)
 
-| Component | Purpose |
-|-----------|---------|
-| React 19 + TypeScript | UI Framework |
-| Vite 6.2 | Build tool |
-| Tailwind CSS | Styling |
-| MemoryViewer | Core session experience |
-| MosaicCreator | Photo mosaic generation |
-| PhotoUploader | Google Drive/Photos integration |
+| Platform | Tech Stack | Purpose |
+|-----------|------------|---------|
+| **Desktop/Mobile (Tauri)** | React 19 + Vite 6 + Tailwind 4 | Main cross-platform UI |
+| **Mobile (Flutter)** | Riverpod + Dio + Animate | Native mobile experience |
+| **Core Components** | Radix UI + Framer Motion | Accessible, fluid interactions |
 
 ### Backend (Modal.com)
 
-| Component | Purpose |
-|-----------|---------|
-| Modal A100 | GPU compute infrastructure |
-| Python 3.11 | Runtime |
-| vLLM | Inference engine |
-| Qwen2.5-VL-7B | Vision model (scene analysis) |
-| Qwen2.5-72B-AWQ | Text model (challenge generation) |
+**Architecture North Star: Backend v2 (JoyCaption + Midnight Rose)**
+
+| Component | Purpose | Model |
+|-----------|---------|-------|
+| **VisionEngine** | Scene analysis & captioning | JoyCaption (Llama-3.1 based) |
+| **TextEngine** | Challenge generation | Midnight Rose 70B v2.0.3 (AWQ) |
+| **Inference** | Serverless GPU (A100) | vLLM Engine |
 
 ---
 
-## Pipeline
+## Pipeline & Protocols
 
 ```
-[Image] -> VisionEngine -> [Scene Description] -> GameMasterEngine -> [Challenge JSON]
+[Image] -> VisionEngine (JoyCaption) -> [Vivid Description] -> TextEngine (Midnight Rose) -> [Intimacy Challenge JSON]
 ```
 
-1. **VisionEngine**: Analyzes uploaded image, outputs objective scene description
-2. **GameMasterEngine**: Takes scene + heat_level, generates intimacy challenge
+### Modes of Experience
+- **HOT:** Visceral, explicit, and direct.
+- **WARM:** Deep, emotional, and romantic.
+
+### Local Protocol (Fallback)
+- **Ollama:** Local inference (Llama 3 / Mistral) when Modal is offline.
 
 ---
 
-## API Contracts
+## Technical Standards
 
-### POST /process_intimacy_request
-
-**Input:**
-```json
-{
-  "image_url": "https://...",
-  "heat_level": 7
-}
-```
-
-**Output:**
-```json
-{
-  "challenge_title": "...",
-  "challenge_text": "...",
-  "rationale": "...",
-  "duration_seconds": 180,
-  "intensity": 7
-}
-```
-
-### POST /process_mosaic_request
-
-**Input:**
-```json
-{
-  "image_url": "https://..."
-}
-```
-
-**Output:**
-```json
-{
-  "title": "..."
-}
-```
+1. **UI System:** Material Design 3 (Figma Redesign).
+2. **Safe Areas:** Strict adherence to `env(safe-area-inset-*)` for mobile/notched devices.
+3. **Styling:** CSS variables via `--hotcocoa-*` with 300ms theme transitions.
+4. **Data:** Tauri Rust commands for local photo/config management.
+5. **Language:** Portuguese Brazilian (PT-BR) for all user-facing content.
 
 ---
 
-## Operational Rules
+## Folder Structure Highlights
 
-1. **Strict Typing**: No `any` in TypeScript. Pydantic required for Python.
-2. **Error Handling**: Graceful fallbacks. Static questions if AI fails.
-3. **Environment**: Frontend uses `import.meta.env`. Backend uses Modal Secrets.
-4. **Language**: Portuguese Brazilian for all user-facing content.
+- `src/`: React Frontend (Tauri-ready).
+- `src-tauri/`: Rust backend for local system access.
+- `hotcocoa_flutter/`: Parallel native Flutter implementation.
+- `backend/`: Modal.com Python scripts (v1 and v2).
+- `adk-agents/`: Autonomous development agents (Google GenAI).
+- `docs/plans/`: Historical and active implementation roadmaps.
 
 ---
 
-## Known Technical Debt
+## Known Technical Debt & TODOs
 
-- Tailwind via CDN (should be PostCSS build)
-- Auth hardcoded in AuthGate.tsx
-- Google creds in localStorage
-- No automated tests
+- [ ] Complete Google Photos/Drive OAuth integration (currently hardcoded/local).
+- [ ] Align Flutter version with Figma Redesign UI.
+- [ ] Migrate all endpoints to Backend v2.
+- [ ] Implement automated testing (Bun test/Flutter test).
+- [ ] Remove Tailwind via CDN leftovers (now fully PostCSS/Vite).
+

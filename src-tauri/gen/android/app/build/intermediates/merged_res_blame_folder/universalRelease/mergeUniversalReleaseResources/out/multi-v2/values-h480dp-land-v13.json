@@ -1,10 +1,10 @@
 {
     "logs": [
         {
-            "outputFile": "com.hotcocoa.desktop.app-mergeUniversalReleaseResources-41:/values-h480dp-land-v13/values-h480dp-land-v13.xml",
+            "outputFile": "com.hotcocoa.desktop.app-mergeUniversalReleaseResources-42:/values-h480dp-land-v13/values-h480dp-land-v13.xml",
             "map": [
                 {
-                    "source": "/home/cmr-auto/.gradle/caches/8.14.3/transforms/a16f15c1c1fe1e25b062327918a513ed/transformed/material-1.12.0/res/values-h480dp-land-v13/values-h480dp-land-v13.xml",
+                    "source": "/home/opc/.gradle/caches/8.14.3/transforms/7f5c545eba0e64ff05b4f80fdef981cc/transformed/material-1.12.0/res/values-h480dp-land-v13/values-h480dp-land-v13.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10",
                         "startColumns": "4,4,4,4,4,4,4,4,4",

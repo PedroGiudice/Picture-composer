@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import SendRounded from '@mui/icons-material/SendRounded';
 import { useTheme } from "@/context/ThemeContext";
 import { GameMasterChat, ChatMessage } from "@/services/gameMasterChat";
@@ -9,11 +9,17 @@ export function ChatScreen() {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: "Ola! Eu sou o assistente HotCocoa. Como posso ajudar a personalizar sua experiencia hoje?"
+      content: "Ola! Estou aqui para criar experiencias de intimidade para voces. O que gostariam de explorar hoje?"
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
   const { mode } = useTheme();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll para ultima mensagem
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const handleSend = async () => {
     if (!message.trim() || isLoading) return;
@@ -25,20 +31,12 @@ export function ChatScreen() {
     setIsLoading(true);
 
     try {
-      // Meta-prompt: ajuda o usuario a customizar o system prompt principal
-      const currentPrompt = getSystemPrompt();
-      const metaPrompt = `Voce e um assistente que ajuda o usuario a customizar o System Prompt do app HotCocoa.
-O System Prompt atual e:
----
-${currentPrompt}
----
-Quando o usuario descrever um contexto (ex: "estamos num restaurante"), sugira ajustes especificos para o prompt.
-Responda em portugues brasileiro de forma clara e objetiva.
-Formate sugestoes de forma que o usuario possa copiar e colar no prompt.`;
+      // Usa o system prompt configurado pelo usuario diretamente
+      const systemPrompt = getSystemPrompt();
 
       const response = await GameMasterChat.send(
         updatedMessages,
-        metaPrompt
+        systemPrompt
       );
 
       setMessages(prev => [...prev, {
@@ -100,6 +98,9 @@ Formate sugestoes de forma que o usuario possa copiar e colar no prompt.`;
             </div>
           </div>
         )}
+
+        {/* Scroll anchor */}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area - MD3 */}

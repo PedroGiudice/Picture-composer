@@ -120,10 +120,10 @@ class UncensoredPipeline:
        """
        import torch
        from transformers import (
-           Qwen2_5_VLForConditionalGeneration, 
-           AutoTokenizer, 
-           AutoProcessor, 
-           AutoModelForCausalLM, 
+           Qwen2_5_VLForConditionalGeneration,
+           AutoTokenizer,
+           AutoProcessor,
+           AutoModelForCausalLM,
            BitsAndBytesConfig
        )
 
@@ -138,12 +138,12 @@ class UncensoredPipeline:
 
        print(f"👁️  Carregando VLM: {VLM_ID}...")
        self.vlm_processor = AutoProcessor.from_pretrained(VLM_ID, cache_dir=MODEL_CACHE_DIR)
-       
+
        # Limitação de pixels é CRUCIAL para evitar OOM com imagens 4K no Qwen
        # Qwen usa patches de 14x14. Limitamos para um máximo razoável.
        # 1280 * 28 * 28 define um teto seguro para o input visual.
        self.vlm_processor.image_processor.max_pixels = 1003520 # Aprox 1MP
-       
+
        self.vlm_model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
            VLM_ID,
            quantization_config=bnb_config,
@@ -170,7 +170,7 @@ class UncensoredPipeline:
 
        # --- FASE 1: Visão Computacional (VLM) ---
        print("\n🔍 Iniciando Análise Visual...")
-       
+
        # Prompt de Sistema para o VLM:
        # Focado em quebrar a censura residual através de diretrizes clínicas e objetivas.
        vlm_messages =
@@ -192,7 +192,7 @@ class UncensoredPipeline:
        # Geração da Descrição
        with torch.no_grad():
            generated_ids = self.vlm_model.generate(
-               **inputs, 
+               **inputs,
                max_new_tokens=512,
                temperature=0.7 # Temperatura mais baixa para precisão factual
            )
@@ -211,7 +211,7 @@ class UncensoredPipeline:
        # Construção do Prompt para o Magnum
        # O Magnum precisa saber que é um especialista em escrita erótica para desbloquear seu potencial.
        llm_messages =
-       
+
        input_ids = self.llm_tokenizer.apply_chat_template(
            llm_messages, return_tensors="pt", add_generation_prompt=True
        ).to("cuda")
@@ -238,13 +238,13 @@ class UncensoredPipeline:
 def main():
    # Ponto de entrada para execução via terminal: modal run script.py
    pipeline = UncensoredPipeline()
-   
+
    # Exemplo de uso
    url = "https://public-test-images.s3.amazonaws.com/test_img.jpg" # Substituir por URL real
    prompt = "Write a slow-burn scene that escalates into intense passion."
-   
+
    ret = pipeline.process_request.remote(image_url=url, user_instruction=prompt)
-   
+
    print("="*50)
    print("ANÁLISE VISUAL (Qwen):")
    print(ret["visual_analysis"])

@@ -1,12 +1,12 @@
 <lint-module
     format="1"
-    dir="/home/cmr-auto/claude-work/repos/Picture-composer/src-tauri/gen/android/app"
+    dir="/home/opc/Picture-composer/src-tauri/gen/android/app"
     name=":app"
     type="APP"
     maven="android:app:unspecified"
     agpVersion="8.11.0"
     buildFolder="build"
-    bootClassPath="/home/cmr-auto/Android/Sdk/platforms/android-36/android.jar:/home/cmr-auto/Android/Sdk/build-tools/35.0.0/core-lambda-stubs.jar"
+    bootClassPath="/home/opc/Android/Sdk/platforms/android-36/android.jar:/home/opc/Android/Sdk/build-tools/35.0.0/core-lambda-stubs.jar"
     javaSourceLevel="1.8"
     compileTarget="android-36">
   <lintOptions
