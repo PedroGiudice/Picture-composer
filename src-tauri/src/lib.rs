@@ -2,11 +2,23 @@ use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use std::sync::OnceLock;
+use tauri::Manager;
 
-/// Get the HotCocoa data directory (~/.hotcocoa or platform equivalent)
+// Global app data dir, set during setup
+static APP_DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+/// Get the HotCocoa data directory (platform-appropriate)
 fn get_app_dir() -> PathBuf {
-    let home = dirs::home_dir().expect("Could not find home directory");
-    home.join(".hotcocoa")
+    APP_DATA_DIR
+        .get()
+        .cloned()
+        .unwrap_or_else(|| {
+            // Fallback for desktop (before setup runs)
+            dirs::home_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join(".hotcocoa")
+        })
 }
 
 /// Get the photos directory
@@ -161,6 +173,11 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
+            // Set the app data directory (works on all platforms including Android)
+            if let Ok(app_data) = app.path().app_data_dir() {
+                let _ = APP_DATA_DIR.set(app_data);
+            }
+
             // Ensure directories exist on startup
             if let Err(e) = ensure_dirs() {
                 log::error!("Failed to create app directories: {}", e);
