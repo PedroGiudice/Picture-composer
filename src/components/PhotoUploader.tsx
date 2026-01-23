@@ -4,6 +4,8 @@ import { Upload, Cloud, Loader2, Settings, Image as ImageIcon, X } from 'lucide-
 import { ParticleBackground } from './ui/ParticleBackground';
 import { loadGoogleApi, openPicker, getCredentials } from '@/utils/googleIntegration';
 import { isTauri, listLocalPhotos, savePhotoLocally, getPhotoAsBase64, fileToBase64 } from '@/services/tauri';
+import { open } from '@tauri-apps/plugin-dialog';
+import { readFile } from '@tauri-apps/plugin-fs';
 
 interface FilePreviewProps {
   file: File;
@@ -100,29 +102,96 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[PhotoUploader] handleFileChange triggered');
+    console.log('[PhotoUploader] isTauri:', isTauri());
+    console.log('[PhotoUploader] files:', e.target.files);
+
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
+      console.log('[PhotoUploader] Processing', newFiles.length, 'files');
       onUpload(newFiles);
 
       // Salvar localmente no Tauri
       if (isTauri()) {
+        console.log('[PhotoUploader] Saving to Tauri storage...');
         for (const file of newFiles) {
           try {
+            console.log('[PhotoUploader] Converting to base64:', file.name);
             const base64 = await fileToBase64(file);
-            await savePhotoLocally(file.name, base64);
+            console.log('[PhotoUploader] Saving photo:', file.name, 'base64 length:', base64.length);
+            const path = await savePhotoLocally(file.name, base64);
+            console.log('[PhotoUploader] Saved to:', path);
           } catch (error) {
-            console.error('Erro ao salvar foto localmente:', error);
+            console.error('[PhotoUploader] Erro ao salvar foto localmente:', error);
           }
         }
+      } else {
+        console.log('[PhotoUploader] Not in Tauri, skipping local save');
       }
+    } else {
+      console.log('[PhotoUploader] No files selected');
     }
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  const triggerUpload = () => {
-    fileInputRef.current?.click();
+  const triggerUpload = async () => {
+    console.log('[PhotoUploader] triggerUpload, isTauri:', isTauri());
+
+    if (isTauri()) {
+      // Usar dialog nativo do Tauri (mais confiavel no Linux)
+      try {
+        console.log('[PhotoUploader] Opening Tauri file dialog...');
+        const selected = await open({
+          multiple: true,
+          filters: [{
+            name: 'Images',
+            extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp']
+          }]
+        });
+
+        console.log('[PhotoUploader] Dialog result:', selected);
+
+        if (selected && selected.length > 0) {
+          const paths = Array.isArray(selected) ? selected : [selected];
+          const loadedFiles: File[] = [];
+
+          for (const filePath of paths) {
+            try {
+              console.log('[PhotoUploader] Reading file:', filePath);
+              const data = await readFile(filePath);
+              const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'photo.jpg';
+              const ext = fileName.split('.').pop()?.toLowerCase() || 'jpg';
+              const mimeType = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+
+              const blob = new Blob([data], { type: mimeType });
+              const file = new File([blob], fileName, { type: mimeType });
+              loadedFiles.push(file);
+
+              // Salvar localmente
+              const base64 = btoa(String.fromCharCode(...data));
+              await savePhotoLocally(fileName, base64);
+              console.log('[PhotoUploader] Saved:', fileName);
+            } catch (err) {
+              console.error('[PhotoUploader] Error reading file:', filePath, err);
+            }
+          }
+
+          if (loadedFiles.length > 0) {
+            console.log('[PhotoUploader] Loaded', loadedFiles.length, 'files');
+            onUpload(loadedFiles);
+          }
+        }
+      } catch (error) {
+        console.error('[PhotoUploader] Tauri dialog error:', error);
+        // Fallback para input HTML
+        fileInputRef.current?.click();
+      }
+    } else {
+      // Usar input HTML padrao (browser)
+      fileInputRef.current?.click();
+    }
   };
 
   const handleGoogleClick = () => {
