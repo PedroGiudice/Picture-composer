@@ -78,7 +78,7 @@ Be detailed and direct. Report exactly what is visible."""
     image=image,
     scaledown_window=300,
     max_containers=10,
-    timeout=600
+    timeout=900
 )
 class VisionEngine:
     @modal.enter()
@@ -249,11 +249,11 @@ FORMATO DE RESPOSTA (JSON puro, sem markdown):
 
 
 @app.cls(
-    gpu="A100",
+    gpu="A100-80GB",
     image=image,
     scaledown_window=300,
     max_containers=10,
-    timeout=600
+    timeout=900
 )
 class GameMasterEngine:
     @modal.enter()
@@ -263,9 +263,9 @@ class GameMasterEngine:
         print("[GameMasterEngine] Initializing vLLM...")
         self.llm = LLM(
             model=TEXT_MODEL_ID,
-            quantization="awq",
-            gpu_memory_utilization=0.9,
-            max_model_len=8192,
+            quantization="awq_marlin",  # Faster than awq, auto-detected compatible
+            gpu_memory_utilization=0.85,
+            max_model_len=2048,  # Reduced: each photo = independent challenge
             trust_remote_code=True,
             dtype="float16"
         )
@@ -334,8 +334,8 @@ class GameMasterEngine:
 
 
 # --- API Endpoints ---
-@app.function(image=image)
-@modal.web_endpoint(method="POST")
+@app.function(image=image, timeout=900)
+@modal.fastapi_endpoint(method="POST")
 async def process_intimacy_request(data: InputDTO) -> Dict[str, Any]:
     """Main endpoint: Image -> Visual Analysis -> Challenge Generation"""
 
@@ -354,8 +354,8 @@ async def process_intimacy_request(data: InputDTO) -> Dict[str, Any]:
     return result
 
 
-@app.function(image=image)
-@modal.web_endpoint(method="POST")
+@app.function(image=image, timeout=900)
+@modal.fastapi_endpoint(method="POST")
 async def chat_with_game_master(data: ChatInputDTO) -> Dict[str, Any]:
     """Chat directly with the GameMaster for contextual adjustments and conversations."""
 
@@ -370,8 +370,8 @@ async def chat_with_game_master(data: ChatInputDTO) -> Dict[str, Any]:
     return {"response": response}
 
 
-@app.function(image=image)
-@modal.web_endpoint(method="POST")
+@app.function(image=image, timeout=900)
+@modal.fastapi_endpoint(method="POST")
 async def process_mosaic_request(data: MosaicInputDTO) -> Dict[str, Any]:
     """Generate a poetic title for a mosaic image."""
 
