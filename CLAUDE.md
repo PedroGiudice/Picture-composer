@@ -68,6 +68,15 @@ Formato para adicionar:
 
 ---
 
+## Backlog / TODO
+
+| Prioridade | Issue | Descrição |
+|------------|-------|-----------|
+| Alta | Upload de fotos não funciona | Linux confirmado, Android não testado. Verificar PhotoUploader.tsx e integração com Tauri |
+| Alta | Persistência segura de API keys | Usuário quer passar keys e salvar permanentemente no app sem expor no código. Usar Tauri secure storage ou keyring |
+
+---
+
 ## Trabalhando com Figma
 
 ### Regra de Ouro
