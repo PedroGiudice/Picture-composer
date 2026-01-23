@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTheme } from '@/context/ThemeContext';
 import LocalFireDepartmentRounded from '@mui/icons-material/LocalFireDepartmentRounded';
 import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
@@ -6,16 +6,25 @@ import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
 export function ThemeIndicator() {
   const { mode } = useTheme();
   const [show, setShow] = useState(false);
-  const [prevMode, setPrevMode] = useState(mode);
+  const prevModeRef = useRef(mode);
+  const hasMounted = useRef(false);
 
   useEffect(() => {
-    if (prevMode !== mode) {
+    // Ignorar a primeira montagem
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      prevModeRef.current = mode;
+      return;
+    }
+
+    // So mostrar se o mode realmente mudou
+    if (prevModeRef.current !== mode) {
       setShow(true);
+      prevModeRef.current = mode;
       const timer = setTimeout(() => setShow(false), 2000);
-      setPrevMode(mode);
       return () => clearTimeout(timer);
     }
-  }, [mode, prevMode]);
+  }, [mode]);
 
   if (!show) return null;
 
