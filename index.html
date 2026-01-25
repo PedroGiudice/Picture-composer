@@ -7,9 +7,67 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Couple's Memory Deck</title>
     <script>
+      // DEBUG: Network request interceptor for diagnosing "localhost: Connection refused"
+      (function() {
+        var debugLog = [];
+        window.__networkDebug = debugLog;
+
+        // Intercept fetch
+        var originalFetch = window.fetch;
+        window.fetch = function(url, options) {
+          var urlStr = typeof url === 'string' ? url : url.url || url.toString();
+          console.log('[DEBUG-FETCH] Request:', urlStr);
+          debugLog.push({ type: 'fetch', url: urlStr, time: new Date().toISOString() });
+
+          if (urlStr.includes('localhost') || urlStr.includes('127.0.0.1')) {
+            console.warn('[DEBUG-FETCH] LOCALHOST DETECTED:', urlStr);
+          }
+
+          return originalFetch.apply(this, arguments).catch(function(err) {
+            console.error('[DEBUG-FETCH] Failed:', urlStr, err.message);
+            debugLog.push({ type: 'fetch-error', url: urlStr, error: err.message, time: new Date().toISOString() });
+            throw err;
+          });
+        };
+
+        // Intercept XHR
+        var originalOpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url) {
+          this._debugUrl = url;
+          console.log('[DEBUG-XHR] Open:', method, url);
+          debugLog.push({ type: 'xhr', method: method, url: url, time: new Date().toISOString() });
+
+          if (url.includes('localhost') || url.includes('127.0.0.1')) {
+            console.warn('[DEBUG-XHR] LOCALHOST DETECTED:', url);
+          }
+
+          return originalOpen.apply(this, arguments);
+        };
+
+        var originalSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function() {
+          var self = this;
+          this.addEventListener('error', function() {
+            console.error('[DEBUG-XHR] Failed:', self._debugUrl);
+            debugLog.push({ type: 'xhr-error', url: self._debugUrl, time: new Date().toISOString() });
+          });
+          return originalSend.apply(this, arguments);
+        };
+
+        console.log('[DEBUG] Network interceptors installed. Access window.__networkDebug for logs.');
+      })();
+
       // Global error handler
       window.addEventListener('error', function(event) {
-        console.error('Global Error:', event.error);
+        console.error('[DEBUG-ERROR] Global Error:', event.message, event.filename, event.lineno);
+        console.error('[DEBUG-ERROR] Stack:', event.error ? event.error.stack : 'N/A');
+
+        // Check if error is related to localhost
+        if (event.message && event.message.includes('localhost')) {
+          console.error('[DEBUG-ERROR] LOCALHOST ERROR DETECTED!');
+          console.error('[DEBUG-ERROR] Network log:', JSON.stringify(window.__networkDebug, null, 2));
+        }
+
         const root = document.getElementById('root');
         // Only show error UI if the app hasn't mounted yet (root is empty)
         if (root && (!root.innerHTML || root.innerHTML === '')) {
@@ -22,9 +80,19 @@
           `;
         }
       });
+
+      // Catch unhandled promise rejections
+      window.addEventListener('unhandledrejection', function(event) {
+        console.error('[DEBUG-PROMISE] Unhandled rejection:', event.reason);
+        if (event.reason && event.reason.message && event.reason.message.includes('localhost')) {
+          console.error('[DEBUG-PROMISE] LOCALHOST ERROR IN PROMISE!');
+          console.error('[DEBUG-PROMISE] Network log:', JSON.stringify(window.__networkDebug, null, 2));
+        }
+      });
     </script>
-    <script async defer src="https://apis.google.com/js/api.js"></script>
-    <script async defer src="https://accounts.google.com/gsi/client"></script>
+    <!-- DEBUG: Google scripts commented out to test if they cause localhost error -->
+    <!-- <script async defer src="https://apis.google.com/js/api.js"></script> -->
+    <!-- <script async defer src="https://accounts.google.com/gsi/client"></script> -->
   </head>
   <body class="bg-warm-950 text-warm-50 antialiased selection:bg-spicy-fire selection:text-white">
     <div id="root"></div>

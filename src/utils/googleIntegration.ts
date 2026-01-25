@@ -36,15 +36,21 @@ export const clearCredentials = () => {
 
 /**
  * Loads the necessary Google API scripts (gapi and gsi)
+ * @param onLoaded Callback when API is ready
+ * @param maxRetries Maximum retry attempts (default: 20 = 10 seconds)
  */
-export const loadGoogleApi = (onLoaded?: () => void) => {
+export const loadGoogleApi = (onLoaded?: () => void, maxRetries: number = 20) => {
   const gapi = (window as any).gapi;
   const google = (window as any).google;
 
   // Ensure both the basic gapi object AND the google.accounts (from GSI) are available
   if (!gapi || !google || !google.accounts) {
+    if (maxRetries <= 0) {
+      console.warn('[GoogleIntegration] Google API scripts not loaded after max retries. Google Drive integration will be unavailable.');
+      return;
+    }
     // Retry if scripts aren't fully loaded yet
-    setTimeout(() => loadGoogleApi(onLoaded), 500);
+    setTimeout(() => loadGoogleApi(onLoaded, maxRetries - 1), 500);
     return;
   }
 

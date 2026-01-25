@@ -170,9 +170,13 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
   }, []);
 
   useEffect(() => {
-    loadGoogleApi(() => {
-      setGoogleReady(true);
-    });
+    // DEBUG: Temporarily skip Google API loading to test localhost error
+    // The scripts are commented out in index.html for diagnostic purposes
+    console.log('[PhotoUploader] Google API loading skipped for localhost debug');
+    // Uncomment below when Google scripts are re-enabled:
+    // loadGoogleApi(() => {
+    //   setGoogleReady(true);
+    // });
   }, []);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
