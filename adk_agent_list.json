@@ -1,0 +1,20 @@
+{
+  "agents": [
+    {
+      "name": "local-adk",
+      "url": "http://localhost:8000"
+    },
+    {
+      "name": "hotcocoa-adk-server",
+      "url": "http://localhost:8001"
+    },
+    {
+      "name": "gemini-cli-agent",
+      "url": "http://localhost:8002"
+    },
+    {
+      "name": "discovered-adk-9000",
+      "url": "http://localhost:9000"
+    }
+  ]
+}

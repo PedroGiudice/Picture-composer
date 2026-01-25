@@ -449,6 +449,11 @@
           "(delegate|offload).*?(analysis|context)",
           "(large|big).*?(file|context).*?(gemini|analyze)"
         ]
+      },
+      "adkAgent": {
+        "name": "gemini-cli-agent",
+        "url": "http://localhost:8002",
+        "endpoint": "/invoke"
       }
     },
     "deep-research": {
