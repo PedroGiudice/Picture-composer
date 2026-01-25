@@ -338,6 +338,50 @@ Novo subagente? Reinicie a sessão.
 
 ---
 
+## ADK Agents (Gemini)
+
+Agentes autônomos que usam google-genai para executar tarefas de desenvolvimento.
+
+### Iniciar/Parar
+
+```bash
+./adk-agents/start-all.sh start    # Inicia todos
+./adk-agents/start-all.sh stop     # Para todos
+./adk-agents/start-all.sh status   # Verifica status
+```
+
+### Enviar Tarefas
+
+```bash
+./adk-agents/start-all.sh frontend "Crie um componente Button"
+./adk-agents/start-all.sh task 8005 "Liste arquivos tsx" src/
+```
+
+### Portas e Agentes
+
+| Porta | Agente | Modelo | Uso |
+|-------|--------|--------|-----|
+| 8002 | gemini-cli | CLI subprocess | Context offloading |
+| 8003 | tauri-frontend | gemini-2.5-pro | Frontend Tauri/React |
+| 8004 | tauri-backend | gemini-2.5-pro | Backend Rust/Tauri |
+| 8005 | frontend | gemini-2.5-pro | Frontend geral |
+
+### Configuração
+
+Arquivo: `adk-agents/.env`
+```env
+GOOGLE_API_KEY=sua-key
+GEMINI_MODEL=gemini-2.5-pro
+```
+
+### Quando Usar
+
+- **Tarefas paralelas**: Delegar trabalho enquanto Claude faz outra coisa
+- **Context offloading**: Arquivos grandes (>500 linhas)
+- **Code review**: Revisão estática de código Tauri/React
+
+---
+
 ## Team
 
 - **PGR** = Pedro (dono do projeto)
