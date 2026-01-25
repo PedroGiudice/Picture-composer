@@ -33,7 +33,7 @@
       "open": true
     },
     "updater": {
-      "pubkey": "RWSZzt+ytewVN2TsXYkaB4F/5ioKvqpf4v+l/4+m/c+oFyQ8vVvjXucS",
+      "pubkey": "RWS7guKiarhsRMtEotVaxW9dwq1Sez7hVk+qzJYx48VKzKFhqYy+ezF0",
       "endpoints": [
         "https://raw.githubusercontent.com/PedroGiudice/Picture-composer/main/latest.json"
       ],

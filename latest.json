@@ -1,11 +1,11 @@
 {
   "version": "0.1.0",
-  "notes": "Initial release of HotCocoa - Couples Memory Deck",
-  "pub_date": "2026-01-25T00:00:00Z",
+  "notes": "Initial release of HotCocoa - Desktop Layout + Auto-Update",
+  "pub_date": "2026-01-25T15:18:00Z",
   "platforms": {
     "linux-x86_64": {
-      "signature": "",
-      "url": "https://github.com/PedroGiudice/Picture-composer/releases/download/v0.1.0/hotcocoa_0.1.0_amd64.AppImage.tar.gz"
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIG1pbmlzaWduIHNlY3JldCBrZXkKUlVTN2d1S2lhcmhzUkRQeGtyT3J5YmhoMElLTDRvbHdxajFSWHA0enFsb0Z6SHphblh5VlE4eHc3bFRRMmJScHZPUVoxelBDTFEvMmlUcGtiNk4zdHlFb2s0alZtc3htUnc0PQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzY5MzU0MzI3CWZpbGU6SG90Q29jb2FfMC4xLjBfYW1kNjQuZGViLnRhci5negloYXNoZWQKaHZNT1o0djlyeXJnNlRCRmhhSWZuWG92NVowd3VIOGhoRFhPZDlYdHQ3eVR6S2s0WEQ1WHBsaGdxZWhnWURqTkNUbm0xK1VLb1VpZ1hZMks0L3RTRGE9PQ==",
+      "url": "https://github.com/PedroGiudice/Picture-composer/releases/download/v0.1.0/HotCocoa_0.1.0_amd64.deb.tar.gz"
     }
   }
 }
