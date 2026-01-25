@@ -18,6 +18,9 @@ import { setSystemPrompt } from "@/components/SystemPromptModal";
 import { Modal } from "@/components/Modal";
 import { cn } from "@/lib/utils";
 
+/**
+ * Props for the PromptSelectorModal component.
+ */
 interface PromptSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,6 +28,17 @@ interface PromptSelectorModalProps {
   onOpenAdvanced: (initialPrompt?: string) => void;
 }
 
+/**
+ * Props for the PresetCard component.
+ */
+interface PresetCardProps {
+  preset: PromptPreset;
+  isSelected: boolean;
+  onSelect: (preset: PromptPreset) => void;
+  mode: string;
+}
+
+// Maps icon names from presets to actual MUI component references.
 const ICON_MAP: Record<string, React.ElementType> = {
   LocalFireDepartmentRounded,
   FavoriteRounded,
@@ -34,14 +48,71 @@ const ICON_MAP: Record<string, React.ElementType> = {
   TheaterComedyRounded,
 };
 
+// Retrieves the saved preset ID from localStorage.
 function getSavedPreset(): string {
   return localStorage.getItem(STORAGE_KEYS.SELECTED_PRESET) || PROMPT_PRESETS[0].id;
 }
 
+// Saves the selected preset ID to localStorage.
 function savePreset(presetId: string): void {
   localStorage.setItem(STORAGE_KEYS.SELECTED_PRESET, presetId);
 }
 
+/**
+ * A reusable card component to display a single prompt preset.
+ * It's implemented as a radio button for accessibility.
+ */
+function PresetCard({ preset, isSelected, onSelect, mode }: PresetCardProps) {
+  const IconComponent = ICON_MAP[preset.icon] || LocalFireDepartmentRounded;
+
+  return (
+    <button
+      role="radio"
+      aria-checked={isSelected}
+      onClick={() => onSelect(preset)}
+      className={cn(
+        "relative flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 active:scale-95 text-left group overflow-hidden",
+        isSelected 
+          ? "border-primary bg-primary/10 shadow-lg scale-[1.02]" 
+          : "border-border/50 hover:border-border hover:bg-white/5 opacity-80 hover:opacity-100"
+      )}
+      style={{
+        borderColor: isSelected ? 'var(--hotcocoa-accent)' : undefined
+      }}
+    >
+       {isSelected && (
+         <div 
+           className="absolute top-0 right-0 p-2"
+           style={{ color: 'var(--hotcocoa-accent)' }}
+         >
+           <CheckCircleRounded fontSize="small" />
+         </div>
+       )}
+      
+      <div
+        className="p-3 rounded-full mb-3 transition-colors duration-300"
+        style={{
+          backgroundColor: isSelected ? 'var(--hotcocoa-accent)' : 'rgba(255, 255, 255, 0.05)',
+          color: isSelected ? (mode === 'warm' ? '#3d2817' : '#000') : 'var(--hotcocoa-accent)'
+        }}
+      >
+        <IconComponent sx={{ fontSize: 28 }} />
+      </div>
+
+      <div className="font-bold text-lg mb-1" style={{ color: 'var(--hotcocoa-text-primary)' }}>
+        {preset.name}
+      </div>
+      <div className="text-sm opacity-70 leading-snug" style={{ color: 'var(--hotcocoa-text-secondary)' }}>
+        {preset.description}
+      </div>
+    </button>
+  );
+}
+
+/**
+ * A modal for users to select, create, or edit a system prompt "persona".
+ * It correctly uses the generic Modal component as a wrapper.
+ */
 export function PromptSelectorModal({
   isOpen,
   onClose,
@@ -84,53 +155,20 @@ export function PromptSelectorModal({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Escolha sua Persona">
       <div className="flex flex-col gap-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto p-1">
-          {PROMPT_PRESETS.map((preset) => {
-            const IconComponent = ICON_MAP[preset.icon] || LocalFireDepartmentRounded;
-            const isSelected = selectedId === preset.id;
-
-            return (
-              <button
-                key={preset.id}
-                onClick={() => handleSelect(preset)}
-                className={cn(
-                  "relative flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 active:scale-95 text-left group overflow-hidden",
-                  isSelected 
-                    ? "border-primary bg-primary/10 shadow-lg scale-[1.02]" 
-                    : "border-border/50 hover:border-border hover:bg-white/5 opacity-80 hover:opacity-100"
-                )}
-                style={{
-                  borderColor: isSelected ? 'var(--hotcocoa-accent)' : undefined
-                }}
-              >
-                 {isSelected && (
-                   <div 
-                     className="absolute top-0 right-0 p-2"
-                     style={{ color: 'var(--hotcocoa-accent)' }}
-                   >
-                     <CheckCircleRounded fontSize="small" />
-                   </div>
-                 )}
-                
-                <div
-                  className="p-3 rounded-full mb-3 transition-colors duration-300"
-                  style={{
-                    backgroundColor: isSelected ? 'var(--hotcocoa-accent)' : 'rgba(255, 255, 255, 0.05)',
-                    color: isSelected ? (mode === 'warm' ? '#3d2817' : '#000') : 'var(--hotcocoa-accent)'
-                  }}
-                >
-                  <IconComponent sx={{ fontSize: 28 }} />
-                </div>
-
-                <div className="font-bold text-lg mb-1" style={{ color: 'var(--hotcocoa-text-primary)' }}>
-                  {preset.name}
-                </div>
-                <div className="text-sm opacity-70 leading-snug" style={{ color: 'var(--hotcocoa-text-secondary)' }}>
-                  {preset.description}
-                </div>
-              </button>
-            );
-          })}
+        <div
+          role="radiogroup"
+          aria-labelledby="modal-title"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto p-1"
+        >
+          {PROMPT_PRESETS.map((preset) => (
+            <PresetCard
+              key={preset.id}
+              preset={preset}
+              isSelected={selectedId === preset.id}
+              onSelect={handleSelect}
+              mode={mode}
+            />
+          ))}
         </div>
         
         <div className="flex flex-col gap-3 pt-4 border-t border-white/10">
