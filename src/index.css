@@ -1,3 +1,10 @@
+/* Display Font - Titulos, Logo, Headlines */
+@import '@fontsource/space-grotesk/400.css';
+@import '@fontsource/space-grotesk/500.css';
+@import '@fontsource/space-grotesk/600.css';
+@import '@fontsource/space-grotesk/700.css';
+
+/* Body Font - UI, Botoes, Texto */
 @import '@fontsource/monaspace-argon/400.css';
 @import '@fontsource/monaspace-argon/500.css';
 @import '@fontsource/monaspace-argon/600.css';
@@ -16,11 +23,27 @@ html, body, #root {
   overflow-x: hidden;
 }
 
+/* Font Variables */
+:root {
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Monaspace Argon', monospace;
+}
+
 /* Base body styling */
 body {
-  font-family: 'Monaspace Argon', monospace;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Display font for headlines */
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+/* Explicit body font class */
+.font-body {
+  font-family: var(--font-body);
 }
 
 /* Ensure content stays above pattern */
