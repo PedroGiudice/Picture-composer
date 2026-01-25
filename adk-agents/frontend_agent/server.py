@@ -28,6 +28,7 @@ from pydantic import BaseModel, Field
 
 from config import FrontendConfig, default_config
 from tools import read_file, write_file, list_directory, run_shell_command
+from agent import FrontendDeveloperAgent
 
 
 # ============================================================================
@@ -173,18 +174,35 @@ class HealthResponse(BaseModel):
 # Aplicacao FastAPI
 # ============================================================================
 
+# Agente global
+agent: Optional[FrontendDeveloperAgent] = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle do servidor."""
+    global agent
+
     logger.info("=" * 60)
     logger.info("FRONTEND AGENT SERVER - Iniciando...")
     logger.info("=" * 60)
     logger.info(f"Porta: {config.port}")
     logger.info(f"Modelo: {config.model_name}")
+
+    # Inicializar agente
+    try:
+        agent = FrontendDeveloperAgent(config)
+        logger.info("Agente google-genai inicializado!")
+    except Exception as e:
+        logger.warning(f"Falha ao inicializar agente: {e}")
+        agent = None
+
     logger.info("=" * 60)
 
     yield
 
+    if agent:
+        await agent.cleanup()
     logger.info("Servidor encerrando...")
 
 
@@ -232,25 +250,30 @@ async def invoke_agent(request: InvokeRequest):
     """
     logger.info(f"Invoke: {request.task[:50]}...")
 
+    # Verificar se agente esta disponivel
+    if agent is None:
+        return InvokeResponse(
+            success=False,
+            output="",
+            error="Agente nao inicializado. Verifique GOOGLE_API_KEY."
+        )
+
     try:
-        # Ler arquivos de contexto se fornecidos
-        context = ""
+        # Construir prompt com contexto de arquivos
+        task_prompt = request.task
+
         if request.files:
+            context_parts = []
             for f in request.files:
                 content = read_file(f)
                 if not content.startswith("Error:"):
-                    context += f"\n--- {f} ---\n{content}\n"
+                    context_parts.append(f"--- {f} ---\n{content}")
 
-        output = f"""
-Tarefa recebida: {request.task}
+            if context_parts:
+                task_prompt = f"{request.task}\n\nContexto dos arquivos:\n" + "\n\n".join(context_parts)
 
-Contexto analisado: {len(request.files or [])} arquivos
-
-Instrucao do Agente:
-{AGENT_INSTRUCTION[:500]}...
-
-Para execucao completa, conecte ao google-genai Client.
-"""
+        # Executar via google-genai
+        output = await agent.run_task(task_prompt)
 
         return InvokeResponse(
             success=True,

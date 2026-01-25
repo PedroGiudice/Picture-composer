@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import TauriFrontendAgentConfig, default_config
 from frontend_agent.tools import read_file, write_file, list_directory, run_shell_command
+from frontend_agent.agent import FrontendDeveloperAgent
 
 
 # ============================================================================
@@ -179,18 +180,37 @@ def execute_tool(tool_name: str, args: dict, working_dir: Optional[str] = None) 
 # Aplicacao FastAPI
 # ============================================================================
 
+# Agente global
+agent: Optional[FrontendDeveloperAgent] = None
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifecycle do servidor."""
+    global agent
+
     logger.info("=" * 60)
     logger.info("TAURI FRONTEND AGENT SERVER - Iniciando...")
     logger.info("=" * 60)
     logger.info(f"Porta: {config.port}")
     logger.info(f"Modelo: {config.default_model}")
+
+    # Inicializar agente com instrucoes Tauri
+    try:
+        from frontend_agent.config import FrontendConfig
+        agent_config = FrontendConfig(model_name=config.default_model)
+        agent = FrontendDeveloperAgent(agent_config)
+        logger.info("Agente google-genai inicializado!")
+    except Exception as e:
+        logger.warning(f"Falha ao inicializar agente: {e}")
+        agent = None
+
     logger.info("=" * 60)
 
     yield
 
+    if agent:
+        await agent.cleanup()
     logger.info("Servidor encerrando...")
 
 
@@ -229,7 +249,7 @@ async def health_check():
 @app.post("/invoke", response_model=InvokeResponse)
 async def invoke_agent(request: InvokeRequest):
     """
-    Invoca o agente para executar uma tarefa de frontend.
+    Invoca o agente para executar uma tarefa de frontend Tauri.
 
     O agente tem acesso a:
     - Leitura/escrita de arquivos
@@ -238,26 +258,33 @@ async def invoke_agent(request: InvokeRequest):
     """
     logger.info(f"Invoke: {request.task[:50]}...")
 
+    # Verificar se agente esta disponivel
+    if agent is None:
+        return InvokeResponse(
+            success=False,
+            output="",
+            error="Agente nao inicializado. Verifique GOOGLE_API_KEY."
+        )
+
     try:
-        # Ler arquivos de contexto se fornecidos
-        context = ""
+        # Construir prompt com instrucoes Tauri + contexto
+        task_prompt = f"""{AGENT_INSTRUCTION}
+
+Tarefa: {request.task}
+"""
+
         if request.files:
+            context_parts = []
             for f in request.files:
                 content = read_file(f)
                 if not content.startswith("Error:"):
-                    context += f"\n--- {f} ---\n{content}\n"
+                    context_parts.append(f"--- {f} ---\n{content}")
 
-        # Simular execucao do agente (em producao, usar google-genai)
-        output = f"""
-Tarefa recebida: {request.task}
+            if context_parts:
+                task_prompt += "\n\nContexto dos arquivos:\n" + "\n\n".join(context_parts)
 
-Contexto analisado: {len(request.files or [])} arquivos
-
-Instrucao do Agente:
-{AGENT_INSTRUCTION[:500]}...
-
-Para execucao completa, conecte ao google-genai Client.
-"""
+        # Executar via google-genai
+        output = await agent.run_task(task_prompt)
 
         return InvokeResponse(
             success=True,
