@@ -30,8 +30,8 @@ from pydantic import BaseModel, Field
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import TauriBackendAgentConfig, default_config
-from frontend_agent.tools import read_file, write_file, list_directory, run_shell_command
-from frontend_agent.agent import FrontendDeveloperAgent
+from tools import read_file, write_file, list_directory, run_shell_command
+#from frontend_agent.agent import FrontendDeveloperAgent
 
 
 # ============================================================================
@@ -171,7 +171,7 @@ class HealthResponse(BaseModel):
 # ============================================================================
 
 # Agente global
-agent: Optional[FrontendDeveloperAgent] = None
+agent = None  # type: ignore
 
 
 @asynccontextmanager
@@ -186,7 +186,7 @@ async def lifespan(app: FastAPI):
     logger.info(f"Modelo: {config.default_model}")
 
     try:
-        from frontend_agent.config import FrontendConfig
+        from config import TauriBackendConfig as FrontendConfig
         agent_config = FrontendConfig(model_name=config.default_model)
         agent = FrontendDeveloperAgent(agent_config)
         logger.info("Agente google-genai inicializado!")

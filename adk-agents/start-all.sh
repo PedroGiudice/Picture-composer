@@ -1,78 +1,72 @@
 #!/bin/bash
-# Inicia todos os agentes ADK em background
-# Uso: ./start-all.sh [start|stop|status]
+# ADK Agents Manager
+# Uso: ./start-all.sh [start|stop|status|task]
 
 AGENTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 PIDS_FILE="/tmp/adk-agents.pids"
 
-# Carregar .env se existir
+# Carregar .env
 if [ -f "$AGENTS_DIR/.env" ]; then
     export $(grep -v '^#' "$AGENTS_DIR/.env" | xargs)
-    echo "Carregado .env"
-fi
-
-# Verificar GOOGLE_API_KEY
-if [ -z "$GOOGLE_API_KEY" ]; then
-    echo "AVISO: GOOGLE_API_KEY nao definida. Agentes LLM nao funcionarao."
-    echo "Crie adk-agents/.env com GOOGLE_API_KEY=sua-key"
 fi
 
 start_agents() {
-    echo "Iniciando agentes ADK..."
-
-    # Matar processos anteriores se existirem
     stop_agents 2>/dev/null
-
-    # Gemini CLI Agent (8002)
+    echo "Iniciando agentes..."
     cd "$AGENTS_DIR/gemini_cli_agent" && python server.py &
     echo $! >> "$PIDS_FILE"
-
-    # Tauri Frontend Agent (8003)
     cd "$AGENTS_DIR/tauri_frontend_agent" && python server.py &
     echo $! >> "$PIDS_FILE"
-
-    # Tauri Backend Agent (8004)
     cd "$AGENTS_DIR/tauri_backend_agent" && python server.py &
     echo $! >> "$PIDS_FILE"
-
-    # Frontend Agent (8005)
     cd "$AGENTS_DIR/frontend_agent" && python server.py &
     echo $! >> "$PIDS_FILE"
-
     sleep 2
-    echo "Agentes iniciados. Health check:"
-    curl -s http://localhost:8002/health | head -c 50 && echo " (8002)"
-    curl -s http://localhost:8003/health | head -c 50 && echo " (8003)"
-    curl -s http://localhost:8004/health | head -c 50 && echo " (8004)"
-    curl -s http://localhost:8005/health | head -c 50 && echo " (8005)"
+    status_agents
 }
 
 stop_agents() {
-    echo "Parando agentes..."
-    if [ -f "$PIDS_FILE" ]; then
-        while read pid; do
-            kill $pid 2>/dev/null
-        done < "$PIDS_FILE"
-        rm "$PIDS_FILE"
-    fi
+    [ -f "$PIDS_FILE" ] && while read pid; do kill $pid 2>/dev/null; done < "$PIDS_FILE" && rm "$PIDS_FILE"
     pkill -f "python server.py" 2>/dev/null
-    echo "Agentes parados."
 }
 
 status_agents() {
-    echo "Status dos agentes:"
-    for port in 8002 8003 8004 8005; do
-        if curl -s "http://localhost:$port/health" >/dev/null 2>&1; then
-            echo "  $port: UP"
-        else
-            echo "  $port: DOWN"
-        fi
+    for p in 8002 8003 8004 8005; do
+        curl -s "http://localhost:$p/health" >/dev/null 2>&1 && echo "$p:UP" || echo "$p:DOWN"
     done
 }
 
-case "${1:-start}" in
+# Enviar tarefa para agente
+# Uso: ./start-all.sh task <porta> "<tarefa>" [arquivo1 arquivo2 ...]
+task() {
+    local port=$1
+    local prompt=$2
+    shift 2
+    local files="$@"
+
+    local json="{\"task\":\"$prompt\""
+    [ -n "$files" ] && json+=",\"files\":[$(echo $files | sed 's/ /","/g;s/^/"/;s/$/"/')]"
+    json+="}"
+
+    curl -s -X POST "http://localhost:$port/invoke" \
+        -H "Content-Type: application/json" \
+        -d "$json" | python3 -c "import sys,json;r=json.load(sys.stdin);print(r.get('output','') or r.get('error',''))"
+}
+
+# Atalhos para cada agente
+gemini() { task 8002 "$@"; }
+tauri_front() { task 8003 "$@"; }
+tauri_back() { task 8004 "$@"; }
+frontend() { task 8005 "$@"; }
+
+case "${1:-}" in
     start) start_agents ;;
-    stop) stop_agents ;;
+    stop) stop_agents; echo "Parado" ;;
     status) status_agents ;;
-    *) echo "Uso: $0 [start|stop|status]" ;;
+    task) shift; task "$@" ;;
+    gemini) shift; gemini "$@" ;;
+    front|frontend) shift; frontend "$@" ;;
+    tauri-front) shift; tauri_front "$@" ;;
+    tauri-back) shift; tauri_back "$@" ;;
+    *) echo "Uso: $0 [start|stop|status|task <porta> <prompt>|gemini|frontend|tauri-front|tauri-back]" ;;
 esac

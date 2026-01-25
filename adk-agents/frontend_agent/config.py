@@ -15,8 +15,8 @@ class FrontendConfig:
     host: str = "0.0.0.0"
     port: int = 8005
 
-    # Model configuration
-    model_name: str = "gemini-2.5-flash"  # Otimizado para baixa latencia e function calling
+    # Model configuration (preferencia: gemini-2.5-pro, gemini-3-*-preview)
+    model_name: str = "gemini-2.5-pro"
 
     # Working directory (sandbox for agent to work in)
     work_dir: Path = field(default_factory=lambda: Path("./work_env"))
@@ -43,7 +43,7 @@ class FrontendConfig:
         return cls(
             host=os.getenv("FRONTEND_AGENT_HOST", "0.0.0.0"),
             port=int(os.getenv("FRONTEND_AGENT_PORT", "8005")),
-            model_name=os.getenv("FRONTEND_AGENT_MODEL", "gemini-2.5-flash"),
+            model_name=os.getenv("GEMINI_MODEL", os.getenv("FRONTEND_AGENT_MODEL", "gemini-2.5-pro")),
             work_dir=Path(os.getenv("FRONTEND_AGENT_WORKDIR", "./work_env")),
             max_iterations=int(os.getenv("FRONTEND_AGENT_MAX_ITER", "30")),
             log_level=os.getenv("FRONTEND_AGENT_LOG_LEVEL", "INFO"),

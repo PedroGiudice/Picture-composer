@@ -30,8 +30,8 @@ from pydantic import BaseModel, Field
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from config import TauriFrontendAgentConfig, default_config
-from frontend_agent.tools import read_file, write_file, list_directory, run_shell_command
-from frontend_agent.agent import FrontendDeveloperAgent
+from tools import read_file, write_file, list_directory, run_shell_command
+#from frontend_agent.agent import FrontendDeveloperAgent
 
 
 # ============================================================================
@@ -181,7 +181,7 @@ def execute_tool(tool_name: str, args: dict, working_dir: Optional[str] = None) 
 # ============================================================================
 
 # Agente global
-agent: Optional[FrontendDeveloperAgent] = None
+agent = None  # type: ignore
 
 
 @asynccontextmanager
@@ -197,7 +197,7 @@ async def lifespan(app: FastAPI):
 
     # Inicializar agente com instrucoes Tauri
     try:
-        from frontend_agent.config import FrontendConfig
+        from config import TauriFrontendConfig as FrontendConfig
         agent_config = FrontendConfig(model_name=config.default_model)
         agent = FrontendDeveloperAgent(agent_config)
         logger.info("Agente google-genai inicializado!")
