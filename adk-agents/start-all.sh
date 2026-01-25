@@ -5,6 +5,18 @@
 AGENTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 PIDS_FILE="/tmp/adk-agents.pids"
 
+# Carregar .env se existir
+if [ -f "$AGENTS_DIR/.env" ]; then
+    export $(grep -v '^#' "$AGENTS_DIR/.env" | xargs)
+    echo "Carregado .env"
+fi
+
+# Verificar GOOGLE_API_KEY
+if [ -z "$GOOGLE_API_KEY" ]; then
+    echo "AVISO: GOOGLE_API_KEY nao definida. Agentes LLM nao funcionarao."
+    echo "Crie adk-agents/.env com GOOGLE_API_KEY=sua-key"
+fi
+
 start_agents() {
     echo "Iniciando agentes ADK..."
 
