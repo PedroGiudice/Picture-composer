@@ -3,7 +3,7 @@ import { useTheme } from "@/context/ThemeContext";
 
 export function ParticleBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
 
   useEffect(() => {
     const canvas = canvasRef.current;

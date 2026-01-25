@@ -17,7 +17,7 @@ export function ViewingScreen({
   onStartProtocol 
 }: ViewingScreenProps) {
   const [intensity, setIntensity] = useState(1);
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
 
   return (
     <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">

@@ -1,210 +1,157 @@
-import { useState, useEffect } from "react";
-import CheckCircleRounded from '@mui/icons-material/CheckCircleRounded';
-import AutoAwesomeRounded from '@mui/icons-material/AutoAwesomeRounded';
-import EditRounded from '@mui/icons-material/EditRounded';
-import LocalFireDepartmentRounded from '@mui/icons-material/LocalFireDepartmentRounded';
-import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
-import SentimentVerySatisfiedRounded from '@mui/icons-material/SentimentVerySatisfiedRounded';
-import GavelRounded from '@mui/icons-material/GavelRounded';
-import PsychologyRounded from '@mui/icons-material/PsychologyRounded';
-import TheaterComedyRounded from '@mui/icons-material/TheaterComedyRounded';
-import { useTheme } from "@/context/ThemeContext";
-import {
-  PROMPT_PRESETS,
-  STORAGE_KEYS,
-  type PromptPreset
-} from "@/constants/promptPresets";
-import { setSystemPrompt } from "@/components/SystemPromptModal";
-import { Modal } from "@/components/Modal";
-import { cn } from "@/lib/utils";
+import React, { useState } from 'react';
+import { Modal } from './Modal';
+import { Crown, Feather, Dice5, Hand, Eye, Infinity as InfinityIcon, Plus, MessageSquare } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-/**
- * Props for the PromptSelectorModal component.
- */
+interface Persona {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+}
+
+const PERSONAS: Persona[] = [
+  { id: 'commander', name: 'O COMANDANTE', description: 'Direto, autoritario, focado em obediencia.', icon: <Crown size={20} /> },
+  { id: 'poet', name: 'O POETA', description: 'Lirico, emocional, focado em conexao.', icon: <Feather size={20} /> },
+  { id: 'player', name: 'O JOGADOR', description: 'Divertido, imprevisivel, gamificado.', icon: <Dice5 size={20} /> },
+  { id: 'sensory', name: 'O SENSORIAL', description: 'Foco em tato, cheiro e sensacoes lentas.', icon: <Hand size={20} /> },
+  { id: 'observer', name: 'O OBSERVADOR', description: 'Pede poses e descreve cenas visuais.', icon: <Eye size={20} /> },
+  { id: 'tantric', name: 'O GUIA TANTRICO', description: 'Respiracao, energia e toques sutis.', icon: <InfinityIcon size={20} /> },
+];
+
 interface PromptSelectorModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenCreator: () => void;
-  onOpenAdvanced: (initialPrompt?: string) => void;
+  selectedPersona: string;
+  onSelectPersona: (id: string) => void;
 }
 
-/**
- * Props for the PresetCard component.
- */
-interface PresetCardProps {
-  preset: PromptPreset;
-  isSelected: boolean;
-  onSelect: (preset: PromptPreset) => void;
-  mode: string;
-}
-
-// Maps icon names from presets to actual MUI component references.
-const ICON_MAP: Record<string, React.ElementType> = {
-  LocalFireDepartmentRounded,
-  FavoriteRounded,
-  SentimentVerySatisfiedRounded,
-  GavelRounded,
-  PsychologyRounded,
-  TheaterComedyRounded,
-};
-
-// Retrieves the saved preset ID from localStorage.
-function getSavedPreset(): string {
-  return localStorage.getItem(STORAGE_KEYS.SELECTED_PRESET) || PROMPT_PRESETS[0].id;
-}
-
-// Saves the selected preset ID to localStorage.
-function savePreset(presetId: string): void {
-  localStorage.setItem(STORAGE_KEYS.SELECTED_PRESET, presetId);
-}
-
-/**
- * A reusable card component to display a single prompt preset.
- * It's implemented as a radio button for accessibility.
- */
-function PresetCard({ preset, isSelected, onSelect, mode }: PresetCardProps) {
-  const IconComponent = ICON_MAP[preset.icon] || LocalFireDepartmentRounded;
-
-  return (
-    <button
-      role="radio"
-      aria-checked={isSelected}
-      onClick={() => onSelect(preset)}
-      className={cn(
-        "relative flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-300 active:scale-95 text-left group overflow-hidden",
-        isSelected 
-          ? "border-primary bg-primary/10 shadow-lg scale-[1.02]" 
-          : "border-border/50 hover:border-border hover:bg-white/5 opacity-80 hover:opacity-100"
-      )}
-      style={{
-        borderColor: isSelected ? 'var(--hotcocoa-accent)' : undefined
-      }}
-    >
-       {isSelected && (
-         <div 
-           className="absolute top-0 right-0 p-2"
-           style={{ color: 'var(--hotcocoa-accent)' }}
-         >
-           <CheckCircleRounded fontSize="small" />
-         </div>
-       )}
-      
-      <div
-        className="p-3 rounded-full mb-3 transition-colors duration-300"
-        style={{
-          backgroundColor: isSelected ? 'var(--hotcocoa-accent)' : 'rgba(255, 255, 255, 0.05)',
-          color: isSelected ? (mode === 'warm' ? '#3d2817' : '#000') : 'var(--hotcocoa-accent)'
-        }}
-      >
-        <IconComponent sx={{ fontSize: 28 }} />
-      </div>
-
-      <div className="font-bold text-lg mb-1" style={{ color: 'var(--hotcocoa-text-primary)' }}>
-        {preset.name}
-      </div>
-      <div className="text-sm opacity-70 leading-snug" style={{ color: 'var(--hotcocoa-text-secondary)' }}>
-        {preset.description}
-      </div>
-    </button>
-  );
-}
-
-/**
- * A modal for users to select, create, or edit a system prompt "persona".
- * It correctly uses the generic Modal component as a wrapper.
- */
-export function PromptSelectorModal({
+export const PromptSelectorModal: React.FC<PromptSelectorModalProps> = ({
   isOpen,
   onClose,
-  onOpenCreator,
-  onOpenAdvanced
-}: PromptSelectorModalProps) {
-  const { mode } = useTheme();
-  const [selectedId, setSelectedId] = useState<string>(getSavedPreset());
+  selectedPersona,
+  onSelectPersona
+}) => {
+  const [mode, setMode] = useState<'select' | 'create'>('select');
+  const [customPrompt, setCustomPrompt] = useState('');
 
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedId(getSavedPreset());
-    }
+  // Reset mode when closing
+  React.useEffect(() => {
+    if (!isOpen) setMode('select');
   }, [isOpen]);
 
-  const handleSelect = (preset: PromptPreset) => {
-    setSelectedId(preset.id);
-  };
-
-  const handleUseSelected = () => {
-    savePreset(selectedId);
-    const preset = PROMPT_PRESETS.find(p => p.id === selectedId);
-    if (preset) {
-      setSystemPrompt(preset.content);
-    }
-    onClose();
-  };
-
-  const handleOpenAdvanced = () => {
-    const preset = PROMPT_PRESETS.find(p => p.id === selectedId);
-    onClose();
-    onOpenAdvanced(preset?.content);
-  };
-
-  const handleOpenCreator = () => {
-    onClose();
-    onOpenCreator();
-  };
-
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Escolha sua Persona">
-      <div className="flex flex-col gap-6">
-        <div
-          role="radiogroup"
-          aria-labelledby="modal-title"
-          className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[60vh] overflow-y-auto p-1"
-        >
-          {PROMPT_PRESETS.map((preset) => (
-            <PresetCard
-              key={preset.id}
-              preset={preset}
-              isSelected={selectedId === preset.id}
-              onSelect={handleSelect}
-              mode={mode}
-            />
-          ))}
-        </div>
-        
-        <div className="flex flex-col gap-3 pt-4 border-t border-white/10">
-            <button
-                onClick={handleOpenCreator}
-                className="w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-dashed transition-all hover:bg-white/5 active:scale-95 group"
-                style={{ borderColor: 'var(--hotcocoa-accent)' }}
-            >
-                <AutoAwesomeRounded sx={{ color: 'var(--hotcocoa-accent)' }} />
-                <span style={{ color: 'var(--hotcocoa-accent)' }} className="font-medium group-hover:underline">Criar Nova Persona</span>
-            </button>
+    <Modal isOpen={isOpen} onClose={onClose} title={mode === 'select' ? "Persona" : "Criar Persona"}>
+      <AnimatePresence mode="wait">
+        {mode === 'select' ? (
+          <motion.div
+            key="select"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="flex flex-col gap-1 pb-4"
+          >
+            <p className="text-xs text-center text-muted-foreground uppercase tracking-widest mb-4">
+              Defina o Game Master
+            </p>
+            <p className="text-xs text-center text-muted-foreground mb-6">
+              Escolha a personalidade da IA que guiara sua experiencia.
+            </p>
 
-            <div className="flex gap-3 mt-2">
-                <button
-                    onClick={handleOpenAdvanced}
-                    className="flex-1 py-3 rounded-xl text-sm font-medium border transition-all hover:bg-white/5 active:scale-95"
-                    style={{ borderColor: 'var(--hotcocoa-border)', color: 'var(--hotcocoa-text-secondary)' }}
-                >
-                    <div className="flex items-center justify-center gap-2">
-                        <EditRounded fontSize="small" />
-                        <span>Editar Prompt</span>
+            <div className="flex flex-col gap-3">
+              {PERSONAS.map((persona) => {
+                const isSelected = selectedPersona === persona.id;
+                return (
+                  <motion.button
+                    key={persona.id}
+                    onClick={() => onSelectPersona(persona.id)}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`
+                      relative flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all duration-300
+                      ${isSelected
+                        ? 'border-primary bg-primary/10 shadow-[0_0_15px_rgba(255,107,107,0.1)]'
+                        : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10'}
+                    `}
+                  >
+                    <div className="flex items-center gap-3 w-full">
+                      <div className={`p-2 rounded-lg ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                        {persona.icon}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className={`font-bold text-sm tracking-wide ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}>
+                          {persona.name}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                          {persona.description}
+                        </p>
+                      </div>
+                      {isSelected && (
+                        <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_var(--color-primary)]" />
+                      )}
                     </div>
-                </button>
-                <button
-                    onClick={handleUseSelected}
-                    className="flex-[2] py-3 rounded-xl text-sm font-bold shadow-lg transition-all hover:brightness-110 active:scale-95"
-                    style={{ 
-                        backgroundColor: 'var(--hotcocoa-accent)',
-                        color: mode === 'warm' ? '#3d2817' : '#000'
-                    }}
-                >
-                    Aplicar Persona
-                </button>
+                  </motion.button>
+                );
+              })}
+
+              <button
+                onClick={() => setMode('create')}
+                className="flex items-center justify-center gap-2 p-4 mt-2 rounded-xl border-2 border-dashed border-white/20 text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors"
+              >
+                <Plus size={20} />
+                <span className="text-xs font-bold uppercase tracking-widest">Criar Nova Persona</span>
+              </button>
             </div>
-        </div>
-      </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="create"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 20 }}
+            className="flex flex-col h-full"
+          >
+             <div className="flex-1 bg-black/20 rounded-xl border border-white/5 p-4 mb-4 min-h-[300px] flex flex-col items-center justify-center text-center p-8">
+                <MessageSquare size={48} className="text-white/10 mb-4" />
+                <p className="text-sm text-muted-foreground">
+                  Descreva como voce quer que o Game Master se comporte.
+                </p>
+                <p className="text-xs text-white/30 mt-2">
+                  "Seja sarcastico e exigente..."
+                </p>
+             </div>
+
+             <div className="relative">
+                <input
+                  type="text"
+                  className="w-full bg-card border border-white/10 rounded-xl p-4 text-sm focus:border-primary focus:outline-none"
+                  placeholder="Descreva a personalidade..."
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                />
+             </div>
+
+             <div className="flex gap-3 mt-4">
+               <button
+                 onClick={() => setMode('select')}
+                 className="flex-1 py-3 bg-white/5 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-white/10"
+               >
+                 Voltar
+               </button>
+               <button
+                 onClick={() => {
+                   // Mock saving custom persona
+                   onSelectPersona('custom');
+                   onClose();
+                 }}
+                 className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl text-xs font-bold uppercase tracking-widest"
+               >
+                 Criar
+               </button>
+             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Modal>
   );
-}
+};

@@ -38,7 +38,7 @@ export function setSystemPrompt(prompt: string): void {
 }
 
 export function SystemPromptModal({ isOpen, onClose, initialPrompt }: SystemPromptModalProps) {
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
   const [prompt, setPrompt] = useState("");
   const [isSaved, setIsSaved] = useState(false);
 

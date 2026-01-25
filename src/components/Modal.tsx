@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import CloseRounded from '@mui/icons-material/CloseRounded';
+import { X } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -37,21 +37,16 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed z-50 left-4 right-4 top-1/2 -translate-y-1/2 max-w-md mx-auto rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
-            style={{ 
-                backgroundColor: 'var(--hotcocoa-card-bg)',
-                border: '1px solid rgba(var(--hotcocoa-accent-rgb), 0.2)'
-            }}
+            className="fixed z-50 left-4 right-4 top-1/2 -translate-y-1/2 max-w-md mx-auto bg-card border border-primary/20 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
           >
             {title && (
               <div className="p-6 pb-2 flex justify-between items-center border-b border-white/5">
-                <h2 className="text-xl font-bold tracking-wider uppercase font-mono" style={{ color: 'var(--hotcocoa-accent)' }}>{title}</h2>
-                <button 
+                <h2 className="text-xl font-bold tracking-wider text-primary uppercase font-mono">{title}</h2>
+                <button
                   onClick={onClose}
-                  className="p-2 -mr-2 transition-colors opacity-70 hover:opacity-100"
-                  style={{ color: 'var(--hotcocoa-text-primary)' }}
+                  className="p-2 -mr-2 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  <CloseRounded sx={{ fontSize: 20 }} />
+                  <X size={20} />
                 </button>
               </div>
             )}
@@ -64,5 +59,3 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
     </AnimatePresence>
   );
 };
-
-export default Modal;

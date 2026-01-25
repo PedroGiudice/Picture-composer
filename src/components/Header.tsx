@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 export function Header({ onConfigClick, onBackClick, showBackButton = false }: HeaderProps) {
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
   
   return (
     <header

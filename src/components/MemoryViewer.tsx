@@ -20,7 +20,7 @@ interface RoundData {
 }
 
 export const MemoryViewer: React.FC<MemoryViewerProps> = ({ files, onReset }) => {
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
   const TOTAL_ROUNDS = Math.min(files.length, 10);
 
   const [rounds, setRounds] = useState<RoundData[]>([]);

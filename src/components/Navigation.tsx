@@ -13,7 +13,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   onBack,
   showBackButton = false
 }) => {
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
   const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   return (

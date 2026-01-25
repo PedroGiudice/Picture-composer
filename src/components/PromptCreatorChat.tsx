@@ -42,7 +42,7 @@ export function PromptCreatorChat({
   onClose,
   onBack
 }: PromptCreatorChatProps) {
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
   const [description, setDescription] = useState("");
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);

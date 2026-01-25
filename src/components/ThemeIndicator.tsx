@@ -4,7 +4,7 @@ import LocalFireDepartmentRounded from '@mui/icons-material/LocalFireDepartmentR
 import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
 
 export function ThemeIndicator() {
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
   const [show, setShow] = useState(false);
   const prevModeRef = useRef(mode);
   const hasMounted = useRef(false);

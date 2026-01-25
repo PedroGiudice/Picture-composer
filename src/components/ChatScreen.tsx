@@ -13,7 +13,7 @@ export function ChatScreen() {
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
-  const { mode } = useTheme();
+  const { theme: mode } = useTheme();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll para ultima mensagem
