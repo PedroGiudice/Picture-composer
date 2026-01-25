@@ -4,6 +4,8 @@ import { HomeScreen } from "@/components/HomeScreen";
 import { ChatScreen } from "@/components/ChatScreen";
 import { ConfigModal } from "@/components/ConfigModal";
 import { SystemPromptModal } from "@/components/SystemPromptModal";
+import { PromptSelectorModal } from "@/components/PromptSelectorModal";
+import { PromptCreatorChat } from "@/components/PromptCreatorChat";
 import { DemoControls } from "@/components/DemoControls";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ThemeIndicator } from "@/components/ThemeIndicator";
@@ -19,6 +21,9 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
+  const [isPromptSelectorOpen, setIsPromptSelectorOpen] = useState(false);
+  const [isPromptCreatorOpen, setIsPromptCreatorOpen] = useState(false);
+  const [initialSystemPrompt, setInitialSystemPrompt] = useState<string | undefined>();
   const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "available" | "downloading" | "ready">("idle");
 
   // Check for updates on startup
@@ -129,13 +134,42 @@ export default function App() {
           currentScreen={currentScreen}
           onScreenChange={setCurrentScreen}
           onConfigOpen={() => setIsConfigOpen(true)}
-          onSystemPromptOpen={() => setIsSystemPromptOpen(true)}
+          onSystemPromptOpen={() => setIsPromptSelectorOpen(true)}
         />
 
-        {/* System Prompt Modal */}
+        {/* System Prompt Modal (Advanced Editor) */}
         <SystemPromptModal
           isOpen={isSystemPromptOpen}
-          onClose={() => setIsSystemPromptOpen(false)}
+          onClose={() => {
+            setIsSystemPromptOpen(false);
+            setInitialSystemPrompt(undefined);
+          }}
+          initialPrompt={initialSystemPrompt}
+        />
+
+        {/* Prompt Selector Modal */}
+        <PromptSelectorModal
+          isOpen={isPromptSelectorOpen}
+          onClose={() => setIsPromptSelectorOpen(false)}
+          onOpenCreator={() => {
+            setIsPromptSelectorOpen(false);
+            setIsPromptCreatorOpen(true);
+          }}
+          onOpenAdvanced={(prompt) => {
+            setIsPromptSelectorOpen(false);
+            setInitialSystemPrompt(prompt);
+            setIsSystemPromptOpen(true);
+          }}
+        />
+
+        {/* Prompt Creator Chat */}
+        <PromptCreatorChat
+          isOpen={isPromptCreatorOpen}
+          onClose={() => setIsPromptCreatorOpen(false)}
+          onBack={() => {
+            setIsPromptCreatorOpen(false);
+            setIsPromptSelectorOpen(true);
+          }}
         />
 
         {/* Theme Change Indicator */}

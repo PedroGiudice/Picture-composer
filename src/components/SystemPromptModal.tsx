@@ -7,6 +7,7 @@ import { useTheme } from "@/context/ThemeContext";
 interface SystemPromptModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialPrompt?: string;
 }
 
 // Chave para persistir no localStorage
@@ -36,17 +37,18 @@ export function setSystemPrompt(prompt: string): void {
   localStorage.setItem(SYSTEM_PROMPT_KEY, prompt);
 }
 
-export function SystemPromptModal({ isOpen, onClose }: SystemPromptModalProps) {
+export function SystemPromptModal({ isOpen, onClose, initialPrompt }: SystemPromptModalProps) {
   const { mode } = useTheme();
   const [prompt, setPrompt] = useState("");
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setPrompt(getSystemPrompt());
+      // Se initialPrompt foi passado, usar ele. Senao, carregar do localStorage
+      setPrompt(initialPrompt ?? getSystemPrompt());
       setIsSaved(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialPrompt]);
 
   const handleSave = () => {
     setSystemPrompt(prompt);

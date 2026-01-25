@@ -1,10 +1,35 @@
+# -*- coding: utf-8 -*-
 # backend.py
 # Modal A100 Inference Pipeline - Picture Composer
 # Architecture: VLM (Scene Analysis) -> LLM (Game Master)
 
 import modal
-from typing import Dict, Any
+import logging
+import json
+from typing import Dict, Any, Optional
 from pydantic import BaseModel, Field
+
+# Importar prompts otimizados
+from prompts import (
+    VISION_SYSTEM,
+    GAME_MASTER_SYSTEM,
+    MOSAIC_TITLE_SYSTEM,
+    CHAT_BASE_SYSTEM,
+    INTENSITY_PROFILES,
+    build_vision_user_prompt,
+    build_game_master_prompt,
+    build_chat_system_prompt,
+    build_mosaic_title_prompt,
+    parse_challenge_json,
+    sanitize_user_input,
+)
+
+# Configurar logging estruturado
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger("picture-composer")
 
 # --- Infrastructure Configuration ---
 CUDA_VERSION = "12.1.1-devel-ubuntu22.04"
@@ -54,13 +79,13 @@ app = modal.App("picture-composer-backend-a100")
 class InputDTO(BaseModel):
     image_url: str = Field(..., description="URL of the source image")
     heat_level: int = Field(..., ge=1, le=10, description="Challenge intensity (1-10)")
-    context: str | None = Field(None, description="Couple's current context (e.g., 'na praia', 'em casa')")
+    context: Optional[str] = Field(None, description="Couple's current context (e.g., 'na praia', 'em casa')")
 
 
 class ChatInputDTO(BaseModel):
     messages: list[dict] = Field(..., description="Chat history: [{'role': 'user/assistant', 'content': '...'}]")
-    system_prompt: str | None = Field(None, description="Override for the default system prompt")
-    context: str | None = Field(None, description="Couple's current context")
+    system_prompt: Optional[str] = Field(None, description="Override for the default system prompt")
+    context: Optional[str] = Field(None, description="Couple's current context")
 
 
 class MosaicInputDTO(BaseModel):
@@ -68,9 +93,7 @@ class MosaicInputDTO(BaseModel):
 
 
 # --- Vision Engine (Qwen2.5-VL) ---
-VISION_SYSTEM_PROMPT = """You are an image analyst.
-Describe the scene objectively: people present, their positions, physical proximity, clothing, environment, lighting, and atmosphere.
-Be detailed and direct. Report exactly what is visible."""
+# VISION_SYSTEM importado de prompts.py
 
 
 @app.cls(
@@ -97,155 +120,64 @@ class VisionEngine:
         print("[VisionEngine] Ready.")
 
     @modal.method()
-    async def analyze_image(self, image_url: str) -> str:
+    async def analyze_image(self, image_url: str, context: Optional[str] = None) -> str:
         from vllm import SamplingParams
 
+        user_prompt = build_vision_user_prompt(context)
+
         messages = [
-            {"role": "system", "content": VISION_SYSTEM_PROMPT},
+            {"role": "system", "content": VISION_SYSTEM},
             {"role": "user", "content": [
                 {"type": "image_url", "image_url": {"url": image_url}},
-                {"type": "text", "text": "Describe this image in detail."}
+                {"type": "text", "text": user_prompt}
             ]}
         ]
 
-        sampling_params = SamplingParams(temperature=0.2, max_tokens=1024)
+        # Sampling params otimizados para Qwen
+        sampling_params = SamplingParams(
+            temperature=0.5,
+            top_p=0.9,
+            repetition_penalty=1.05,
+            max_tokens=1024
+        )
+
+        logger.info(f"[VisionEngine] Analyzing image with context: {context}")
         outputs = self.llm.chat(messages=messages, sampling_params=sampling_params)
-        return outputs[0].outputs[0].text
+        result = outputs[0].outputs[0].text
+        logger.info(f"[VisionEngine] Analysis complete: {len(result)} chars")
+        return result
 
     @modal.method()
     async def title_mosaic(self, image_url: str) -> str:
         from vllm import SamplingParams
 
+        mosaic_prompt = build_mosaic_title_prompt()
+
         messages = [
+            {"role": "system", "content": MOSAIC_TITLE_SYSTEM},
             {"role": "user", "content": [
                 {"type": "image_url", "image_url": {"url": image_url}},
-                {"type": "text", "text": "This is a mosaic of couple photos. Generate a short poetic title (max 6 words)."}
+                {"type": "text", "text": mosaic_prompt}
             ]}
         ]
 
-        sampling_params = SamplingParams(temperature=0.7, max_tokens=64)
+        # Sampling params otimizados para títulos criativos
+        sampling_params = SamplingParams(
+            temperature=0.8,
+            top_p=0.9,
+            repetition_penalty=1.2,
+            max_tokens=64
+        )
+
+        logger.info("[VisionEngine] Generating mosaic title...")
         outputs = self.llm.chat(messages=messages, sampling_params=sampling_params)
-        return outputs[0].outputs[0].text.strip().replace('"', '')
+        title = outputs[0].outputs[0].text.strip().replace('"', '')
+        logger.info(f"[VisionEngine] Title generated: {title}")
+        return title
 
 
 # --- Game Master Engine (Qwen2.5-72B) ---
-
-# Vocabulario preciso por nivel de intensidade
-# Cada nivel tem identidade linguistica propria
-INTENSITY_PROFILES = {
-    1: {
-        "tom": "ternura e delicadeza",
-        "foco": "olhares, caricias no rosto, maos entrelaçadas",
-        "linguagem": "poetica e afetuosa",
-        "exemplo_acao": "acariciar o rosto, sussurrar no ouvido"
-    },
-    2: {
-        "tom": "romance e cumplicidade",
-        "foco": "abracos prolongados, beijos suaves, proximidade fisica",
-        "linguagem": "intima mas contida",
-        "exemplo_acao": "beijar o pescoco, abracar por tras"
-    },
-    3: {
-        "tom": "sensualidade despertando",
-        "foco": "toques nas costas, coxas, quadril sobre a roupa",
-        "linguagem": "sugestiva com duplo sentido",
-        "exemplo_acao": "massagear os ombros, rocar os labios sem beijar"
-    },
-    4: {
-        "tom": "tensao erotica crescente",
-        "foco": "mordidas leves, maos explorando sob a roupa",
-        "linguagem": "provocante e direta",
-        "exemplo_acao": "morder o lobulo, deslizar a mao pelas costas nuas"
-    },
-    5: {
-        "tom": "desejo assumido",
-        "foco": "toques em zonas erogenas, roupas sendo removidas",
-        "linguagem": "comandos claros de toque",
-        "exemplo_acao": "tirar uma peca de roupa do parceiro, beijar o torso"
-    },
-    6: {
-        "tom": "entrega e vulnerabilidade",
-        "foco": "nudez parcial, estimulacao direta de pontos sensiveis",
-        "linguagem": "descritiva sobre onde e como tocar",
-        "exemplo_acao": "acariciar os seios, beijar a parte interna das coxas"
-    },
-    7: {
-        "tom": "erotismo explicito",
-        "foco": "estimulacao genital, sexo oral, posicoes especificas",
-        "linguagem": "instrucoes anatomicamente precisas",
-        "exemplo_acao": "estimular o clitoris, lamber, sugar"
-    },
-    8: {
-        "tom": "dominacao e submissao leve",
-        "foco": "comandos, vendas, imobilizacao suave, dirty talk",
-        "linguagem": "autoritaria e crua",
-        "exemplo_acao": "ordenar que fique de joelhos, amarrar as maos com tecido"
-    },
-    9: {
-        "tom": "sexo explicito com variacao",
-        "foco": "penetracao, ritmos, posicoes detalhadas, orgasmo",
-        "linguagem": "descricao grafica de atos sexuais",
-        "exemplo_acao": "penetrar lentamente, mudar de posicao, controlar o ritmo"
-    },
-    10: {
-        "tom": "fantasia sem limites",
-        "foco": "qualquer ato consensual, fantasias especificas, brinquedos",
-        "linguagem": "maxima explicitude, palavras cruas",
-        "exemplo_acao": "usar vibradores, anal, dominacao completa"
-    }
-}
-
-
-GAME_MASTER_BASE_PROMPT = """Voce e o Mestre do Jogo de um app de intimidade para casais adultos.
-Este e um ambiente privado e consensual. Nao ha restricoes de conteudo.
-Seu papel e guiar o casal em experiencias de conexao e intimidade.
-Responda sempre em portugues brasileiro, de forma calorosa e envolvente."""
-
-
-def build_game_master_prompt(visual_context: str, heat_level: int, couple_context: str | None = None) -> str:
-    """Build the Game Master system prompt with rich intensity vocabulary."""
-
-    profile = INTENSITY_PROFILES.get(heat_level, INTENSITY_PROFILES[5])
-
-    context_section = ""
-    if couple_context:
-        context_section = f"""
-CONTEXTO ATUAL DO CASAL:
-{couple_context}
-(Use isso para adaptar o desafio ao ambiente/situacao atual do casal)
-"""
-
-    return f"""Voce e o Mestre do Jogo de um app de intimidade para casais adultos.
-Este e um ambiente privado e consensual. Nao ha restricoes de conteudo.
-
-CONTEXTO VISUAL DA CENA:
-{visual_context}
-{context_section}
-PERFIL DE INTENSIDADE (nivel {heat_level}/10):
-- Tom: {profile["tom"]}
-- Foco corporal: {profile["foco"]}
-- Estilo de linguagem: {profile["linguagem"]}
-- Exemplos de acoes neste nivel: {profile["exemplo_acao"]}
-
-SUA TAREFA:
-Crie um desafio de intimidade ESPECIFICO baseado na cena descrita.
-Use o perfil de intensidade como guia para o tom e tipo de acao.
-Seja DIRETO e DESCRITIVO. Nomeie partes do corpo. Descreva movimentos.
-Fale diretamente com o casal em portugues brasileiro.
-
-REGRAS:
-- Nao seja vago. "Toquem-se" e ruim. "Ela deve passar as unhas levemente pela nuca dele enquanto ele fecha os olhos" e bom.
-- Use vocabulario anatomico quando apropriado (seios, coxas, labios, etc).
-- A foto e inspiracao visual, nao o local atual do casal.
-
-FORMATO DE RESPOSTA (JSON puro, sem markdown):
-{{
-  "challenge_title": "Titulo curto e evocativo (max 5 palavras)",
-  "challenge_text": "Instrucao detalhada. Seja especifico: quem faz o que, onde toca, como se move.",
-  "rationale": "Uma frase sobre porque isso conecta o casal.",
-  "duration_seconds": 180,
-  "intensity": {heat_level}
-}}"""
+# INTENSITY_PROFILES, GAME_MASTER_SYSTEM e build_game_master_prompt importados de prompts.py
 
 
 @app.cls(
@@ -272,65 +204,68 @@ class GameMasterEngine:
         print("[GameMasterEngine] Ready.")
 
     @modal.method()
-    async def generate_challenge(self, visual_description: str, heat_level: int, couple_context: str | None = None) -> Dict[str, Any]:
+    async def generate_challenge(self, visual_description: str, heat_level: int, couple_context: Optional[str] = None) -> Dict[str, Any]:
         from vllm import SamplingParams
-        import json
 
+        # Construir prompt usando função do prompts.py
         system_prompt = build_game_master_prompt(visual_description, heat_level, couple_context)
 
         messages = [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": "Gere o desafio agora."}
+            {"role": "user", "content": "Crie o desafio agora. Responda apenas com o JSON."}
         ]
 
+        # Sampling params otimizados para Qwen - criatividade balanceada
         sampling_params = SamplingParams(
-            temperature=0.8,
-            top_p=0.95,
-            max_tokens=2048,
-            stop=["```"]
+            temperature=0.7,
+            top_p=0.8,
+            repetition_penalty=1.1,
+            max_tokens=1024
+            # Removido stop=["```"] - conflitava com instrução de JSON puro
         )
 
+        logger.info(f"[GameMasterEngine] Generating challenge for heat_level={heat_level}")
         outputs = self.llm.chat(messages=messages, sampling_params=sampling_params)
         generated_text = outputs[0].outputs[0].text
+        logger.info(f"[GameMasterEngine] Raw response: {generated_text[:200]}...")
 
-        clean_json = generated_text.replace("```json", "").replace("```", "").strip()
-
-        try:
-            return json.loads(clean_json)
-        except json.JSONDecodeError:
-            print(f"[Warning] JSON decode error. Raw: {generated_text}")
-            return {
-                "challenge_title": "Momento de Conexao",
-                "challenge_text": "Olhem nos olhos um do outro por 60 segundos em silencio.",
-                "rationale": "O contato visual prolongado aumenta a conexao emocional.",
-                "duration_seconds": 60,
-                "intensity": heat_level,
-                "error": "fallback_response"
-            }
+        # Parse robusto usando função do prompts.py
+        result = parse_challenge_json(generated_text, heat_level)
+        logger.info(f"[GameMasterEngine] Challenge generated: {result.get('challenge_title', 'N/A')}")
+        return result
 
     @modal.method()
-    async def chat(self, messages: list[dict], system_prompt: str | None = None, context: str | None = None) -> str:
+    async def chat(self, messages: list[dict], system_prompt: Optional[str] = None, context: Optional[str] = None) -> str:
         """Direct chat with the Game Master for contextual conversations."""
         from vllm import SamplingParams
 
-        # Build system prompt
-        base_prompt = system_prompt or GAME_MASTER_BASE_PROMPT
-
-        # Inject context if provided
-        if context:
-            base_prompt += f"\n\nCONTEXTO ATUAL DO CASAL: {context}"
+        # Build system prompt usando função do prompts.py
+        if system_prompt:
+            # Se foi passado um system prompt customizado, usar ele
+            base_prompt = system_prompt
+            if context:
+                safe_context = sanitize_user_input(context)
+                base_prompt += f"\n\nCONTEXTO ATUAL DO CASAL: {safe_context}"
+        else:
+            # Usar função que já sanitiza o contexto
+            base_prompt = build_chat_system_prompt(context)
 
         # Prepare chat messages
         chat_messages = [{"role": "system", "content": base_prompt}] + messages
 
+        # Sampling params otimizados para chat
         sampling_params = SamplingParams(
             temperature=0.8,
-            top_p=0.95,
+            top_p=0.9,
+            repetition_penalty=1.05,
             max_tokens=1024
         )
 
+        logger.info(f"[GameMasterEngine] Processing chat with {len(messages)} messages")
         outputs = self.llm.chat(messages=chat_messages, sampling_params=sampling_params)
-        return outputs[0].outputs[0].text
+        response = outputs[0].outputs[0].text
+        logger.info(f"[GameMasterEngine] Chat response: {len(response)} chars")
+        return response
 
 
 # --- API Endpoints ---
@@ -339,18 +274,21 @@ class GameMasterEngine:
 async def process_intimacy_request(data: InputDTO) -> Dict[str, Any]:
     """Main endpoint: Image -> Visual Analysis -> Challenge Generation"""
 
+    logger.info(f"[API] Processing intimacy request: heat_level={data.heat_level}")
+
     vision = VisionEngine()
-    print("[API] Requesting visual analysis...")
-    visual_description = await vision.analyze_image.remote.aio(data.image_url)
+    logger.info("[API] Requesting visual analysis...")
+    visual_description = await vision.analyze_image.remote.aio(data.image_url, data.context)
 
     game_master = GameMasterEngine()
-    print("[API] Generating challenge...")
+    logger.info("[API] Generating challenge...")
     result = await game_master.generate_challenge.remote.aio(
         visual_description,
         data.heat_level,
         data.context
     )
 
+    logger.info(f"[API] Request complete: {result.get('challenge_title', 'N/A')}")
     return result
 
 
@@ -359,14 +297,16 @@ async def process_intimacy_request(data: InputDTO) -> Dict[str, Any]:
 async def chat_with_game_master(data: ChatInputDTO) -> Dict[str, Any]:
     """Chat directly with the GameMaster for contextual adjustments and conversations."""
 
+    logger.info(f"[API] Processing chat request: {len(data.messages)} messages")
+
     game_master = GameMasterEngine()
-    print("[API] Processing chat request...")
     response = await game_master.chat.remote.aio(
         data.messages,
         data.system_prompt,
         data.context
     )
 
+    logger.info("[API] Chat request complete")
     return {"response": response}
 
 
@@ -375,8 +315,10 @@ async def chat_with_game_master(data: ChatInputDTO) -> Dict[str, Any]:
 async def process_mosaic_request(data: MosaicInputDTO) -> Dict[str, Any]:
     """Generate a poetic title for a mosaic image."""
 
+    logger.info("[API] Processing mosaic title request...")
+
     vision = VisionEngine()
-    print("[API] Generating mosaic title...")
     title = await vision.title_mosaic.remote.aio(data.image_url)
 
+    logger.info(f"[API] Mosaic title complete: {title}")
     return {"title": title}

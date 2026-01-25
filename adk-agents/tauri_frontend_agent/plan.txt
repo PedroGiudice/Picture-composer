@@ -1,0 +1,23 @@
+# Plano: Atualizacao do Frontend com Design Figma
+
+## Objetivo
+Atualizar o frontend do Picture Composer com os novos designs do Figma.
+
+## Fases de Implementacao
+
+### Fase 1: Componentes Base
+1.1 Criar src/components/Modal.tsx generico (MUI icons, Framer Motion)
+1.2 Criar src/components/HeatSlider.tsx (Novo design, gradiente)
+
+### Fase 2: Modais
+2.1 Atualizar src/components/PromptSelectorModal.tsx (Layout novo, Personas do Figma)
+2.2 Atualizar src/components/ConfigModal.tsx (Campo API Key)
+
+### Fase 3: App Principal
+3.1 Atualizar src/App.tsx (Bottom-nav, upload area, setup/chat states)
+3.2 Criar src/styles/globals.css (Tailwind v4)
+
+### Fase 4: Limpeza
+- Remover DemoControls.tsx
+
+Execute este plano usando as ferramentas de sistema de arquivos.
