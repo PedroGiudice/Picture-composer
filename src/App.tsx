@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
 import { HomeScreen } from "@/components/HomeScreen";
 import { ChatScreen } from "@/components/ChatScreen";
@@ -7,6 +7,11 @@ import { SystemPromptModal } from "@/components/SystemPromptModal";
 import { DemoControls } from "@/components/DemoControls";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ThemeIndicator } from "@/components/ThemeIndicator";
+import { check } from "@tauri-apps/plugin-updater";
+import { relaunch } from "@tauri-apps/plugin-process";
+
+// Version from package.json (injected by Vite)
+const APP_VERSION = __APP_VERSION__ || "0.1.0";
 
 type Screen = "home" | "chat";
 
@@ -14,6 +19,45 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [isSystemPromptOpen, setIsSystemPromptOpen] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "available" | "downloading" | "ready">("idle");
+
+  // Check for updates on startup
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      try {
+        setUpdateStatus("checking");
+        const update = await check();
+        if (update) {
+          setUpdateStatus("available");
+          console.log(`Update available: ${update.version}`);
+
+          // Auto-download
+          setUpdateStatus("downloading");
+          await update.downloadAndInstall((event) => {
+            if (event.event === "Progress") {
+              const progress = (event.data.chunkLength / event.data.contentLength) * 100;
+              console.log(`Download progress: ${progress.toFixed(1)}%`);
+            }
+          });
+          setUpdateStatus("ready");
+
+          // Prompt user to restart
+          if (confirm(`Nova versao ${update.version} instalada! Reiniciar agora?`)) {
+            await relaunch();
+          }
+        } else {
+          setUpdateStatus("idle");
+        }
+      } catch (e) {
+        console.log("Update check failed (normal in dev):", e);
+        setUpdateStatus("idle");
+      }
+    };
+
+    // Check after 3 seconds to not block startup
+    const timer = setTimeout(checkForUpdates, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleDeviceUpload = () => {
     // TODO: Implementar upload real via file picker
@@ -67,7 +111,10 @@ export default function App() {
             className="text-xs opacity-40"
             style={{ color: 'var(--hotcocoa-text-secondary)' }}
           >
-            v0.0.1
+            v{APP_VERSION}
+            {updateStatus === "checking" && " (verificando...)"}
+            {updateStatus === "downloading" && " (baixando update...)"}
+            {updateStatus === "ready" && " (reinicie para atualizar)"}
           </span>
         </footer>
 
