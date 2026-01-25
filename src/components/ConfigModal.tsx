@@ -1,9 +1,9 @@
-import CloseRounded from '@mui/icons-material/CloseRounded';
-import LocalFireDepartmentRounded from '@mui/icons-material/LocalFireDepartmentRounded';
-import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
-import SettingsRounded from '@mui/icons-material/SettingsRounded';
 import { useState, useEffect } from "react";
 import { useTheme } from "@/context/ThemeContext";
+import LocalFireDepartmentRounded from '@mui/icons-material/LocalFireDepartmentRounded';
+import FavoriteRounded from '@mui/icons-material/FavoriteRounded';
+import KeyRounded from '@mui/icons-material/KeyRounded';
+import { Modal } from "./Modal";
 
 interface ConfigModalProps {
   isOpen: boolean;
@@ -14,8 +14,9 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
   const { mode, setMode } = useTheme();
   const [temperature, setTemperature] = useState(0.8);
   const [maxTokens, setMaxTokens] = useState(1024);
+  const [apiKey, setApiKey] = useState("");
 
-  // Sync local state with theme context
+  // Sync local state with theme context if needed
   useEffect(() => {
     // This ensures the local experienceMode reflects the global theme
   }, [mode]);
@@ -24,77 +25,27 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
     setMode(newMode);
   };
 
-  if (!isOpen) return null;
+  const handleSave = () => {
+    // Logic to save settings would go here (e.g. localStorage or context update)
+    // For now, we just close the modal
+    onClose();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      {/* Overlay */}
-      <div 
-        className="absolute inset-0 bg-black/70"
-        onClick={onClose}
-      />
-
-      {/* Modal - MD3 Elevated Card with 16dp radius */}
-      <div 
-        className="relative w-full max-w-md rounded-2xl p-6 shadow-2xl max-h-[85vh] overflow-y-auto transition-colors duration-300"
-        style={{ 
-          backgroundColor: 'var(--hotcocoa-card-bg)',
-          borderRadius: '16px'
-        }}
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div 
-              className="p-2 rounded-xl transition-colors duration-300"
-              style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-            >
-              <SettingsRounded 
-                sx={{ 
-                  fontSize: 24, 
-                  color: 'var(--hotcocoa-accent)' 
-                }} 
-              />
-            </div>
-            <h2 
-              className="text-xl transition-colors duration-300"
-              style={{ color: 'var(--hotcocoa-text-primary)' }}
-            >
-              System Configuration
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 transition-all duration-200 active:scale-95"
-            aria-label="Close"
-            style={{ 
-              minWidth: '48px', 
-              minHeight: '48px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <CloseRounded 
-              sx={{ 
-                fontSize: 24, 
-                color: 'var(--hotcocoa-text-secondary)' 
-              }} 
-            />
-          </button>
-        </div>
-
+    <Modal isOpen={isOpen} onClose={onClose} title="System Configuration">
+      <div className="flex flex-col gap-6">
+        
         {/* Experience Mode */}
-        <div className="mb-8">
+        <div>
           <h3 
-            className="text-sm uppercase tracking-wider mb-4 transition-colors duration-300"
+            className="text-sm uppercase tracking-wider mb-4 transition-colors duration-300 font-bold"
             style={{ color: 'var(--hotcocoa-text-secondary)' }}
           >
             Experience Mode
           </h3>
           
           <div className="flex gap-3">
-            {/* Hot Mode - MD3 Filled Button Card */}
+            {/* Hot Mode */}
             <button
               onClick={() => handleModeChange("hot")}
               className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all duration-300 active:scale-95 ${
@@ -106,6 +57,8 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
                 borderRadius: '12px',
                 minHeight: '48px'
               }}
+              aria-pressed={mode === "hot"}
+              aria-label="Switch to Hot mode"
             >
               <LocalFireDepartmentRounded 
                 sx={{ 
@@ -115,7 +68,7 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
               />
               <div className="text-left">
                 <div 
-                  className="text-sm transition-colors duration-300"
+                  className="text-sm font-medium transition-colors duration-300"
                   style={{ color: 'var(--hotcocoa-text-primary)' }}
                 >
                   HOT
@@ -129,7 +82,7 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
               </div>
             </button>
 
-            {/* Warm Mode - MD3 Filled Button Card */}
+            {/* Warm Mode */}
             <button
               onClick={() => handleModeChange("warm")}
               className={`flex-1 flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all duration-300 active:scale-95 ${
@@ -141,6 +94,8 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
                 borderRadius: '12px',
                 minHeight: '48px'
               }}
+              aria-pressed={mode === "warm"}
+              aria-label="Switch to Warm mode"
             >
               <FavoriteRounded 
                 sx={{ 
@@ -150,7 +105,7 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
               />
               <div className="text-left">
                 <div 
-                  className="text-sm transition-colors duration-300"
+                  className="text-sm font-medium transition-colors duration-300"
                   style={{ color: 'var(--hotcocoa-text-primary)' }}
                 >
                   WARM
@@ -166,69 +121,110 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
           </div>
         </div>
 
-        {/* Model Parameters */}
-        <div className="mb-6">
+        {/* API Configuration */}
+        <div>
           <h3 
-            className="text-sm uppercase tracking-wider mb-4 transition-colors duration-300"
+            className="text-sm uppercase tracking-wider mb-4 transition-colors duration-300 font-bold"
+            style={{ color: 'var(--hotcocoa-text-secondary)' }}
+          >
+            API Configuration
+          </h3>
+          
+          <div className="flex flex-col gap-2">
+            <label 
+              htmlFor="gemini-api-key"
+              className="text-sm flex items-center gap-2"
+              style={{ color: 'var(--hotcocoa-text-primary)' }}
+            >
+              <KeyRounded sx={{ fontSize: 18, color: 'var(--hotcocoa-accent)' }} />
+              Gemini API Key
+            </label>
+            <input
+              id="gemini-api-key"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Enter your Gemini API key..."
+              className="w-full p-3 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--hotcocoa-accent)]"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                borderColor: 'var(--hotcocoa-border)',
+                color: 'var(--hotcocoa-text-primary)',
+              }}
+            />
+            <p className="text-xs opacity-60" style={{ color: 'var(--hotcocoa-text-secondary)' }}>
+              Required for AI generation features.
+            </p>
+          </div>
+        </div>
+
+        {/* Model Parameters */}
+        <div>
+          <h3 
+            className="text-sm uppercase tracking-wider mb-4 transition-colors duration-300 font-bold"
             style={{ color: 'var(--hotcocoa-text-secondary)' }}
           >
             Model Parameters
           </h3>
 
-          {/* Temperature - MD3 Slider */}
+          {/* Temperature */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <label 
+                htmlFor="temperature-slider"
                 className="text-sm transition-colors duration-300"
                 style={{ color: 'var(--hotcocoa-text-primary)' }}
               >
                 Temperature (Creativity)
               </label>
               <span 
-                className="text-sm transition-colors duration-300"
+                className="text-sm font-mono"
                 style={{ color: 'var(--hotcocoa-accent)' }}
               >
                 {temperature.toFixed(1)}
               </span>
             </div>
             <input
+              id="temperature-slider"
               type="range"
               min="0"
               max="2"
               step="0.1"
               value={temperature}
               onChange={(e) => setTemperature(parseFloat(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-300"
+              className="w-full h-2 rounded-full appearance-none cursor-pointer"
               style={{
                 background: `linear-gradient(to right, var(--hotcocoa-accent) 0%, var(--hotcocoa-accent) ${(temperature / 2) * 100}%, var(--hotcocoa-border) ${(temperature / 2) * 100}%, var(--hotcocoa-border) 100%)`
               }}
             />
           </div>
 
-          {/* Max Tokens - MD3 Slider */}
+          {/* Max Tokens */}
           <div>
             <div className="flex items-center justify-between mb-2">
               <label 
+                htmlFor="max-tokens-slider"
                 className="text-sm transition-colors duration-300"
                 style={{ color: 'var(--hotcocoa-text-primary)' }}
               >
                 Max Tokens (Length)
               </label>
               <span 
-                className="text-sm transition-colors duration-300"
+                className="text-sm font-mono"
                 style={{ color: 'var(--hotcocoa-accent)' }}
               >
                 {maxTokens}
               </span>
             </div>
             <input
+              id="max-tokens-slider"
               type="range"
               min="256"
               max="2048"
               step="256"
               value={maxTokens}
               onChange={(e) => setMaxTokens(parseInt(e.target.value))}
-              className="w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-300"
+              className="w-full h-2 rounded-full appearance-none cursor-pointer"
               style={{
                 background: `linear-gradient(to right, var(--hotcocoa-accent) 0%, var(--hotcocoa-accent) ${((maxTokens - 256) / (2048 - 256)) * 100}%, var(--hotcocoa-border) ${((maxTokens - 256) / (2048 - 256)) * 100}%, var(--hotcocoa-border) 100%)`
               }}
@@ -236,10 +232,10 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
           </div>
         </div>
 
-        {/* Save Button - MD3 Filled Button */}
+        {/* Save Button */}
         <button
-          onClick={onClose}
-          className="w-full py-3 rounded-xl transition-all duration-300 hover:scale-105 active:scale-95"
+          onClick={handleSave}
+          className="w-full py-3 rounded-xl transition-all duration-300 hover:scale-[1.02] active:scale-95 font-bold shadow-lg"
           style={{ 
             backgroundColor: 'var(--hotcocoa-accent)',
             color: mode === 'warm' ? '#3d2817' : '#000',
@@ -250,6 +246,6 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
           Save Settings
         </button>
       </div>
-    </div>
+    </Modal>
   );
 }
