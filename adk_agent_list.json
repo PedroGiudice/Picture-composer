@@ -13,6 +13,18 @@
       "url": "http://localhost:8002"
     },
     {
+      "name": "tauri-frontend-agent",
+      "url": "http://localhost:8003"
+    },
+    {
+      "name": "tauri-backend-agent",
+      "url": "http://localhost:8004"
+    },
+    {
+      "name": "frontend-agent",
+      "url": "http://localhost:8005"
+    },
+    {
       "name": "discovered-adk-9000",
       "url": "http://localhost:9000"
     }

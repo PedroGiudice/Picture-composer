@@ -11,6 +11,10 @@ from pathlib import Path
 class FrontendConfig:
     """Configuration for the Frontend Developer Agent."""
 
+    # Server
+    host: str = "0.0.0.0"
+    port: int = 8005
+
     # Model configuration
     model_name: str = "gemini-2.5-flash"  # Otimizado para baixa latencia e function calling
 
@@ -37,6 +41,8 @@ class FrontendConfig:
     def from_env(cls) -> "FrontendConfig":
         """Create config from environment variables."""
         return cls(
+            host=os.getenv("FRONTEND_AGENT_HOST", "0.0.0.0"),
+            port=int(os.getenv("FRONTEND_AGENT_PORT", "8005")),
             model_name=os.getenv("FRONTEND_AGENT_MODEL", "gemini-2.5-flash"),
             work_dir=Path(os.getenv("FRONTEND_AGENT_WORKDIR", "./work_env")),
             max_iterations=int(os.getenv("FRONTEND_AGENT_MAX_ITER", "30")),
