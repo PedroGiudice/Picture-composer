@@ -9,9 +9,9 @@ from typing import Optional, Any
 from google import genai
 from google.genai import types
 
-from .config import FrontendConfig, default_config
-from .prompts import FRONTEND_DEV_INSTRUCTION
-from .tools import (
+from config import FrontendConfig, default_config
+from prompts import FRONTEND_DEV_INSTRUCTION
+from tools import (
     read_file,
     write_file,
     list_directory,
