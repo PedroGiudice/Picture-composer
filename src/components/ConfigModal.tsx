@@ -16,18 +16,22 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
   const [maxTokens, setMaxTokens] = useState(1024);
   const [apiKey, setApiKey] = useState("");
 
-  // Sync local state with theme context if needed
+  // Carregar API key do localStorage ao abrir
   useEffect(() => {
-    // This ensures the local experienceMode reflects the global theme
-  }, [mode]);
+    const storedKey = localStorage.getItem("google-drive-api-key");
+    if (storedKey) setApiKey(storedKey);
+  }, []);
 
   const handleModeChange = (newMode: "hot" | "warm") => {
     setMode(newMode);
   };
 
+  const handleApiKeyChange = (value: string) => {
+    setApiKey(value);
+    localStorage.setItem("google-drive-api-key", value);
+  };
+
   const handleSave = () => {
-    // Logic to save settings would go here (e.g. localStorage or context update)
-    // For now, we just close the modal
     onClose();
   };
 
@@ -131,20 +135,20 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
           </h3>
           
           <div className="flex flex-col gap-2">
-            <label 
-              htmlFor="gemini-api-key"
+            <label
+              htmlFor="google-drive-api-key"
               className="text-sm flex items-center gap-2"
               style={{ color: 'var(--hotcocoa-text-primary)' }}
             >
               <KeyRounded sx={{ fontSize: 18, color: 'var(--hotcocoa-accent)' }} />
-              Gemini API Key
+              Google Drive API Key
             </label>
             <input
-              id="gemini-api-key"
+              id="google-drive-api-key"
               type="password"
               value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="Enter your Gemini API key..."
+              onChange={(e) => handleApiKeyChange(e.target.value)}
+              placeholder="Chave de API do Google Drive..."
               className="w-full p-3 rounded-xl border transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--hotcocoa-accent)]"
               style={{
                 backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -153,7 +157,7 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
               }}
             />
             <p className="text-xs opacity-60" style={{ color: 'var(--hotcocoa-text-secondary)' }}>
-              Required for AI generation features.
+              Necessario para importar fotos do Google Drive.
             </p>
           </div>
         </div>

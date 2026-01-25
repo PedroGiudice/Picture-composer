@@ -72,6 +72,7 @@ Formato para adicionar:
 
 | Prioridade | Issue | Descrição |
 |------------|-------|-----------|
+| **Critica** | "Could not connect to localhost: Connection refused" | Erro aparece como popup ao abrir o app no Linux. NAO e o updater (ja desabilitado). Investigar: scripts Google (apis.google.com), WebKit, ou algum fetch no startup. Rodar com DevTools para capturar network requests. |
 | Alta | Upload de fotos não funciona | Linux confirmado, Android não testado. Verificar PhotoUploader.tsx e integração com Tauri |
 | Alta | Persistência segura de API keys | Usuário quer passar keys e salvar permanentemente no app sem expor no código. Usar Tauri secure storage ou keyring |
 

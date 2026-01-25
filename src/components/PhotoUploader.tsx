@@ -7,6 +7,80 @@ import { isTauri, listLocalPhotos, savePhotoLocally, getPhotoAsBase64, fileToBas
 import { open } from '@tauri-apps/plugin-dialog';
 import { readFile } from '@tauri-apps/plugin-fs';
 
+// Type declaration for Android JavaScript Interface
+declare global {
+  interface Window {
+    HotCocoaPermissions?: {
+      checkPermissions: () => string;
+      requestPermissions: () => void;
+      isAndroid: () => boolean;
+      getSdkVersion: () => number;
+    };
+  }
+}
+
+interface PermissionStatus {
+  granted: boolean;
+  permission: string;
+  sdkVersion: number;
+}
+
+/**
+ * Check if running on Android with our custom JavaScript interface.
+ */
+const isAndroidWithPermissions = (): boolean => {
+  return typeof window !== 'undefined' &&
+         typeof window.HotCocoaPermissions !== 'undefined' &&
+         typeof window.HotCocoaPermissions.isAndroid === 'function';
+};
+
+/**
+ * Check current permission status on Android.
+ */
+const checkAndroidPermissions = (): PermissionStatus | null => {
+  if (!isAndroidWithPermissions()) return null;
+
+  try {
+    const result = window.HotCocoaPermissions!.checkPermissions();
+    return JSON.parse(result) as PermissionStatus;
+  } catch (error) {
+    console.error('[PhotoUploader] Error checking permissions:', error);
+    return null;
+  }
+};
+
+/**
+ * Request permissions on Android and wait for result.
+ * Returns a promise that resolves when permission dialog is dismissed.
+ */
+const requestAndroidPermissions = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    if (!isAndroidWithPermissions()) {
+      resolve(true);
+      return;
+    }
+
+    // Listen for permission result event
+    const handleResult = (event: CustomEvent<{ granted: boolean }>) => {
+      window.removeEventListener('permissionResult', handleResult as EventListener);
+      resolve(event.detail.granted);
+    };
+
+    window.addEventListener('permissionResult', handleResult as EventListener);
+
+    // Timeout after 60 seconds (user might take time to decide)
+    setTimeout(() => {
+      window.removeEventListener('permissionResult', handleResult as EventListener);
+      // Re-check permissions in case event was missed
+      const status = checkAndroidPermissions();
+      resolve(status?.granted ?? false);
+    }, 60000);
+
+    // Trigger permission request
+    window.HotCocoaPermissions!.requestPermissions();
+  });
+};
+
 interface FilePreviewProps {
   file: File;
   onRemove: () => void;
@@ -140,6 +214,25 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
     console.log('[PhotoUploader] triggerUpload, isTauri:', isTauri());
 
     if (isTauri()) {
+      // Check Android permissions first
+      if (isAndroidWithPermissions()) {
+        console.log('[PhotoUploader] Android detected, checking permissions...');
+        const permStatus = checkAndroidPermissions();
+        console.log('[PhotoUploader] Permission status:', permStatus);
+
+        if (permStatus && !permStatus.granted) {
+          console.log('[PhotoUploader] Requesting permissions...');
+          const granted = await requestAndroidPermissions();
+          console.log('[PhotoUploader] Permission result:', granted);
+
+          if (!granted) {
+            // Show alert to user
+            alert('Permissao negada para acessar fotos. Por favor, permita o acesso nas configuracoes do app.');
+            return;
+          }
+        }
+      }
+
       // Usar dialog nativo do Tauri (mais confiavel no Linux)
       try {
         console.log('[PhotoUploader] Opening Tauri file dialog...');
@@ -185,12 +278,20 @@ export const PhotoUploader: React.FC<PhotoUploaderProps> = ({
         }
       } catch (error) {
         console.error('[PhotoUploader] Tauri dialog error:', error);
+        alert(`Erro ao abrir seletor de arquivos: ${error}`);
         // Fallback para input HTML
-        fileInputRef.current?.click();
+        if (fileInputRef.current) {
+          fileInputRef.current.click();
+        }
       }
     } else {
+      console.log('[PhotoUploader] Not in Tauri, using HTML input');
       // Usar input HTML padrao (browser)
-      fileInputRef.current?.click();
+      if (fileInputRef.current) {
+        fileInputRef.current.click();
+      } else {
+        alert('Erro: Input de arquivo nao encontrado');
+      }
     }
   };
 

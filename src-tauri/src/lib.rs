@@ -172,7 +172,8 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_updater::Builder::default().build())
+        // TODO: Reativar updater quando latest.json estiver no GitHub
+        // .plugin(tauri_plugin_updater::Builder::default().build())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             // Set the app data directory (works on all platforms including Android)

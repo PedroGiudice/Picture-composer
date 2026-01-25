@@ -1,7 +1,5 @@
-import React from 'react';
-import { cn } from "@/lib/utils"; // Keeping cn for potential future use or if other components need it
 import LocalFireDepartmentRounded from '@mui/icons-material/LocalFireDepartmentRounded';
-import { useTheme } from '../context/ThemeContext'; // Adjust path if necessary
+import { useTheme } from '@/context/ThemeContext';
 
 /**
  * @interface HeatSliderProps
@@ -29,8 +27,8 @@ interface HeatSliderProps {
   max?: number;
 }
 
-export const HeatSlider: React.FC<HeatSliderProps> = ({ value, onChange, min = 1, max = 10 }) => {
-  const { theme } = useTheme();
+export const HeatSlider = ({ value, onChange, min = 1, max = 10 }: HeatSliderProps) => {
+  const { mode } = useTheme();
 
   // Calculate percentage for gradient background and thumb position
   const percentage = ((value - min) / (max - min)) * 100;
@@ -76,7 +74,7 @@ export const HeatSlider: React.FC<HeatSliderProps> = ({ value, onChange, min = 1
             className="h-full transition-all duration-300 ease-out"
             style={{
               width: `${percentage}%`,
-              background: theme === 'hot'
+              background: mode === 'hot'
                 ? 'linear-gradient(90deg, #500000 0%, #ff6b6b 100%)'
                 : 'linear-gradient(90deg, #2d1810 0%, #d4a574 100%)'
             }}
@@ -100,140 +98,3 @@ export const HeatSlider: React.FC<HeatSliderProps> = ({ value, onChange, min = 1
     </div>
   );
 };
-
-// Usage Example
-/*
-import React, { useState } from 'react';
-import { HeatSlider } from './HeatSlider'; // Adjust path as needed
-import { ThemeProvider } from '../context/ThemeContext'; // Assuming ThemeProvider exists
-
-const HeatSliderUsageExample: React.FC = () => {
-  const [heatValue, setHeatValue] = useState(5);
-
-  return (
-    <ThemeProvider>
-      <div className="p-4 bg-gray-800 min-h-screen flex items-center justify-center">
-        <div className="w-96">
-          <HeatSlider
-            value={heatValue}
-            onChange={setHeatValue}
-          />
-        </div>
-      </div>
-    </ThemeProvider>
-  );
-};
-
-export default HeatSliderUsageExample;
-*/
-
-// Unit Test Structure
-/*
-import { render, screen, fireEvent } from '@testing-library/react';
-import { HeatSlider } from './HeatSlider';
-import { ThemeContext, ThemeProvider } from '../context/ThemeContext'; // Mock if necessary
-
-describe('HeatSlider', () => {
-  const mockOnChange = jest.fn();
-
-  it('renders correctly with default props', () => {
-    render(
-      <ThemeProvider>
-        <HeatSlider value={5} onChange={mockOnChange} />
-      </ThemeProvider>
-    );
-
-    expect(screen.getByLabelText('Intensity slider')).toBeInTheDocument();
-    expect(screen.getByText('SENSUAL')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
-  });
-
-  it('displays the correct label for different values', () => {
-    const { rerender } = render(
-      <ThemeProvider>
-        <HeatSlider value={2} onChange={mockOnChange} />
-      </ThemeProvider>
-    );
-    expect(screen.getByText('SUAVE')).toBeInTheDocument();
-
-    rerender(
-      <ThemeProvider>
-        <HeatSlider value={7} onChange={mockOnChange} />
-      </ThemeProvider>
-    );
-    expect(screen.getByText('INTENSO')).toBeInTheDocument();
-
-    rerender(
-      <ThemeProvider>
-        <HeatSlider value={9} onChange={mockOnChange} />
-      </ThemeProvider>
-    );
-    expect(screen.getByText('EXTREMO')).toBeInTheDocument();
-  });
-
-  it('calls onChange when the slider value changes', () => {
-    render(
-      <ThemeProvider>
-        <HeatSlider value={5} onChange={mockOnChange} />
-      </ThemeProvider>
-    );
-
-    const slider = screen.getByLabelText('Intensity slider');
-    fireEvent.change(slider, { target: { value: '8' } });
-    expect(mockOnChange).toHaveBeenCalledWith(8);
-  });
-
-  it('applies hot theme gradient', () => {
-    // Mock ThemeContext to control theme
-    const mockThemeContext = { theme: 'hot', toggleTheme: jest.fn() };
-    render(
-      <ThemeContext.Provider value={mockThemeContext}>
-        <HeatSlider value={5} onChange={mockOnChange} />
-      </ThemeContext.Provider>
-    );
-
-    const track = screen.getByLabelText('Intensity slider').nextElementSibling?.firstElementChild as HTMLElement;
-    expect(track).toHaveStyle('background: linear-gradient(90deg, #500000 0%, #ff6b6b 100%)');
-  });
-
-  it('applies warm theme gradient', () => {
-    // Mock ThemeContext to control theme
-    const mockThemeContext = { theme: 'warm', toggleTheme: jest.fn() };
-    render(
-      <ThemeContext.Provider value={mockThemeContext}>
-        <HeatSlider value={5} onChange={mockOnChange} />
-      </ThemeContext.Provider>
-    );
-
-    const track = screen.getByLabelText('Intensity slider').nextElementSibling?.firstElementChild as HTMLElement;
-    expect(track).toHaveStyle('background: linear-gradient(90deg, #2d1810 0%, #d4a574 100%)');
-  });
-});
-*/
-
-// Accessibility Checklist:
-/*
-1. ARIA Labels:
-   - `aria-label="Intensity slider"` added to the input range for screen reader users.
-   - `aria-valuemin`, `aria-valuemax`, `aria-valuenow` added to the input range to convey the slider's state.
-   - `aria-valuetext={getIntensityLabel(value)}` provides a human-readable value for the slider.
-   - `aria-live="polite"` on the intensity label span ensures screen readers announce changes.
-   - `aria-hidden="true"` on the numeric value to avoid redundancy with `aria-valuetext`.
-
-2. Keyboard Navigation:
-   - The native `<input type="range">` inherently supports keyboard navigation (left/right arrow keys, home/end keys).
-   - Focus management: The input is naturally focusable.
-
-3. Focus Management:
-   - The `<input type="range">` receives focus by default when tabbed to.
-   - No custom focus management is needed as the native element handles it.
-
-4. Color Contrast:
-   - Ensure the text colors (`text-primary`, `text-white/10`) and background colors (`bg-card`, `bg-black/40`, `bg-background`) meet WCAG contrast guidelines. (This is a design system concern, assuming Tailwind's defaults or custom theme values are compliant).
-
-5. Semantic HTML:
-   - Using `<input type="range">` is semantically appropriate for a slider.
-
-6. Responsive Design:
-   - The component uses `w-full` and flexbox for responsiveness, adapting to different screen sizes.
-*/

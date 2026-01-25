@@ -35,7 +35,7 @@
     "updater": {
       "pubkey": "RWSZzt+ytewVN2TsXYkaB4F/5ioKvqpf4v+l/4+m/c+oFyQ8vVvjXucS",
       "endpoints": [
-        "https://github.com/PedroGiudice/Picture-composer/releases/latest/download/latest.json"
+        "https://raw.githubusercontent.com/PedroGiudice/Picture-composer/main/latest.json"
       ],
       "windows": {
         "installMode": "passive"

@@ -8,8 +8,9 @@ import { PromptSelectorModal } from "@/components/PromptSelectorModal";
 import { PromptCreatorChat } from "@/components/PromptCreatorChat";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ThemeIndicator } from "@/components/ThemeIndicator";
-import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from "@tauri-apps/plugin-process";
+// TODO: Reativar quando latest.json estiver no GitHub
+// import { check } from "@tauri-apps/plugin-updater";
+// import { relaunch } from "@tauri-apps/plugin-process";
 
 // MUI Icons
 import CameraAltRounded from "@mui/icons-material/CameraAltRounded";
@@ -57,36 +58,34 @@ export default function App() {
   const [isPromptSelectorOpen, setIsPromptSelectorOpen] = useState(false);
   const [isPromptCreatorOpen, setIsPromptCreatorOpen] = useState(false);
   const [initialSystemPrompt, setInitialSystemPrompt] = useState<string | undefined>();
-  const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "available" | "downloading" | "ready">("idle");
+  // TODO: Reativar quando latest.json estiver no GitHub
+  // const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "available" | "downloading" | "ready">("idle");
 
-  // Check for updates on startup
-  useEffect(() => {
-    const checkForUpdates = async () => {
-      try {
-        setUpdateStatus("checking");
-        const update = await check();
-        if (update) {
-          setUpdateStatus("available");
-          // Auto-download
-          setUpdateStatus("downloading");
-          await update.downloadAndInstall();
-          setUpdateStatus("ready");
-          // Prompt user to restart
-          if (confirm(`Nova versao ${update.version} instalada! Reiniciar agora?`)) {
-            await relaunch();
-          }
-        } else {
-          setUpdateStatus("idle");
-        }
-      } catch (e) {
-        console.log("Update check failed (normal in dev):", e);
-        setUpdateStatus("idle");
-      }
-    };
-
-    const timer = setTimeout(checkForUpdates, 3000);
-    return () => clearTimeout(timer);
-  }, []);
+  // Check for updates on startup - DISABLED until updater is properly configured
+  // useEffect(() => {
+  //   const checkForUpdates = async () => {
+  //     try {
+  //       setUpdateStatus("checking");
+  //       const update = await check();
+  //       if (update) {
+  //         setUpdateStatus("available");
+  //         setUpdateStatus("downloading");
+  //         await update.downloadAndInstall();
+  //         setUpdateStatus("ready");
+  //         if (confirm(`Nova versao ${update.version} instalada! Reiniciar agora?`)) {
+  //           await relaunch();
+  //         }
+  //       } else {
+  //         setUpdateStatus("idle");
+  //       }
+  //     } catch (e) {
+  //       console.log("Update check failed (normal in dev):", e);
+  //       setUpdateStatus("idle");
+  //     }
+  //   };
+  //   const timer = setTimeout(checkForUpdates, 3000);
+  //   return () => clearTimeout(timer);
+  // }, []);
 
   const handleDeviceUpload = () => {
     console.log("Device upload clicked");
