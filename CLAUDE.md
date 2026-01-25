@@ -1,70 +1,41 @@
 # CLAUDE.md - Picture-composer
 
-**PORTUGUÊS BRASILEIRO COM ACENTUAÇÃO CORRETA.** Usar "eh" em vez de "é" é inaceitável. Acentos são obrigatórios: é, á, ã, ç, etc.
-
-Instruções operacionais para Claude Code neste repositório.
-
-**Arquitetura:** `GEMINI.md` (North Star)
+**PORTUGUÊS BRASILEIRO COM ACENTUAÇÃO CORRETA.** Acentos obrigatórios: é, á, ã, ç, etc.
 
 ---
 
 ## Regras Críticas
 
 ### 1. ZERO Emojis
-**PROIBIDO** usar emojis em qualquer output: respostas, código, commits, comentários.
-Motivo: Bug no CLI Rust causa crash em char boundaries de emojis (4 bytes).
+**PROIBIDO** emojis em qualquer output. Bug no CLI Rust causa crash em char boundaries.
 
 ### 2. Nunca Commitar
-- `.venv/`, `__pycache__/`, `*.pdf`, `*.log`, `node_modules/`, `dist/`
+`.venv/`, `__pycache__/`, `*.pdf`, `*.log`, `node_modules/`, `dist/`
 
 ### 3. mgrep em vez de grep
 ```bash
 mgrep "pattern"           # em vez de grep -r "pattern"
-mgrep "pattern" src/      # busca em diretório específico
 ```
 
 ### 4. Gemini para Context Offloading
-**SEMPRE** usar `gemini-assistant` para:
-- Arquivos > 500 linhas
-- Múltiplos arquivos simultâneos
-- Logs extensos, diffs grandes
+Usar `gemini-assistant` para arquivos > 500 linhas, múltiplos arquivos, logs extensos.
 
 ### 5. Commitar Frequentemente
-Commitar após cada mudança lógica para validar cedo e evitar perda de trabalho.
+Após cada mudança lógica para validar cedo.
 
-### 6. Nunca Substituir Modelo do Usuário
-**NUNCA** substituir modelo indicado pelo usuário - usar EXATAMENTE o especificado.
-
-### 7. Ambiente Padrão: Linux Ubuntu
-A menos que o usuário diga o contrário, considere **SEMPRE** que estamos em Linux Ubuntu.
-Comandos de instalação devem usar `apt`, paths seguem convenções Linux, etc.
+### 6. Ambiente Padrão: Linux Ubuntu
+Comandos usam `apt`, paths seguem convenções Linux.
 
 ---
 
 ## Erros Aprendidos
 
-**INSTRUÇÃO PARA CLAUDE:** Adicione uma entrada aqui quando:
-- O usuário corrigir um erro seu
-- Você cometer erro grosseiro (syntax error, import errado)
-- Um erro acontecer mais de uma vez
-- Erro "fatal" (mudança em um layer quebra outro)
-
-Não crie hooks para cada erro - documente aqui primeiro. Esta seção cresce organicamente.
-
 | Data | Erro | Regra |
 |------|------|-------|
-| 2026-01-18 | (Inicializado) | Ver regras críticas acima |
-| 2026-01-22 | Sugeriu buildar APK no PC quando já existia na VM | Artefatos buildados na VM devem ser copiados, não rebuildados |
-| 2026-01-22 | Tentou "adaptar" código do Figma em vez de copiar | **COPIAR EXATAMENTE** o código do Figma - ver seção abaixo |
-| 2026-01-22 | Substituiu MUI Icons por Lucide sem ser pedido | **NUNCA** substituir bibliotecas/frameworks sem autorização |
-| 2026-01-22 | Não copiou os arquivos CSS do Figma | Copiar TUDO: componentes TSX E arquivos CSS |
-| 2026-01-22 | Múltiplas iterações para algo simples | Seguir o código fonte, não "interpretar" |
-| 2026-01-22 | Usou IP errado da VM (inventou 152.70.53.30) | **SEMPRE** verificar IP com `curl ifconfig.me` antes de comandos scp/ssh |
-
-<!--
-Formato para adicionar:
-| YYYY-MM-DD | Descrição breve do erro | O que evitar/fazer diferente |
--->
+| 2026-01-22 | Sugeriu buildar APK no PC quando já existia na VM | Artefatos buildados na VM devem ser copiados via Tailscale |
+| 2026-01-22 | Tentou "adaptar" código do Figma | **COPIAR EXATAMENTE** - não adaptar, não melhorar |
+| 2026-01-22 | Substituiu MUI Icons por Lucide | **NUNCA** substituir bibliotecas sem autorização |
+| 2026-01-22 | Usou IP errado da VM | Verificar IP com `curl ifconfig.me` antes de scp/ssh |
 
 ---
 
@@ -72,186 +43,109 @@ Formato para adicionar:
 
 | Prioridade | Issue | Descrição |
 |------------|-------|-----------|
-| **Critica** | "Could not connect to localhost: Connection refused" | Erro aparece como popup ao abrir o app no Linux. NAO e o updater (ja desabilitado). Investigar: scripts Google (apis.google.com), WebKit, ou algum fetch no startup. Rodar com DevTools para capturar network requests. |
-| Alta | Upload de fotos não funciona | Linux confirmado, Android não testado. Verificar PhotoUploader.tsx e integração com Tauri |
-| Alta | Persistência segura de API keys | Usuário quer passar keys e salvar permanentemente no app sem expor no código. Usar Tauri secure storage ou keyring |
+| **Crítica** | localhost: Connection refused | Popup no Linux. Scripts Google desabilitados para teste. Ver `index.html` |
+| Alta | Upload de fotos não funciona | Linux confirmado. Verificar PhotoUploader.tsx |
+| Alta | Persistência de API keys | Usar Tauri secure storage |
 
 ---
 
-## Trabalhando com Figma
+## Figma
 
-### Regra de Ouro
-**COPIE O CÓDIGO DO FIGMA EXATAMENTE COMO ESTÁ.** Não "adapte", não "melhore", não substitua bibliotecas.
+**COPIE O CÓDIGO EXATAMENTE.** Não adapte, não melhore, não substitua bibliotecas.
 
-### Processo Correto
-
-1. **Copiar componentes TSX** - Ajustar APENAS os paths de import (`@/app/...` -> `@/...`)
-2. **Copiar arquivos CSS** - TODOS: `theme.css`, `hotcocoa.css`, `md3-ripple.css`, etc.
-3. **Instalar dependências** - Se o Figma usa MUI Icons, instale MUI Icons. Não substitua por Lucide.
-4. **Testar** - `npm run build` deve passar
-5. **Compilar** - Para Tauri: `cargo tauri android build`
-
-### O que NÃO fazer
-
-- Substituir MUI Icons por Lucide (ou vice-versa)
-- "Interpretar" o design e reescrever do zero
-- Ignorar arquivos CSS
-- Fazer múltiplas iterações tentando "melhorar"
-
-### Se o Figma não estiver disponível
-
-1. **AVISAR O USUÁRIO** imediatamente
-2. Pedir para enviar os arquivos novamente
-3. NÃO tentar reconstruir de memória ou screenshots
-
----
-
-## Visão Geral do Projeto
-
-**Couple's Memory Deck** é uma aplicação dual-stack para curadoria de memórias românticas com experiências de intimidade aprimoradas por IA. O frontend é React/TypeScript com Vite, e o backend é Python serverless no Modal.com com modelos Qwen.
-
-**Idioma principal:** Português Brasileiro (UI, prompts, conteúdo gerado)
+1. Copiar componentes TSX - ajustar só paths (`@/app/...` -> `@/...`)
+2. Copiar arquivos CSS - TODOS
+3. Instalar dependências exatas (MUI Icons = MUI Icons)
+4. Se Figma indisponível: AVISAR o usuário, não reconstruir
 
 ---
 
 ## Quick Start
 
 ```bash
-# Instalar dependências
-npm install
-
-# Rodar em desenvolvimento
-npm run dev
-
-# Build para produção
-npm run build
-
-# Preview do build
-npm run preview
+npm install && npm run dev     # Dev em http://localhost:3000
+npm run build                   # Build produção
 ```
 
-O servidor de desenvolvimento roda em `http://localhost:3000`
+---
+
+## Stack
+
+**Frontend:** React 19, TypeScript 5.8, Vite 6.2, Tailwind CSS, Radix UI, Framer Motion, Lucide React
+
+**Backend (Modal.com):** Python 3.11, NVIDIA A100, Qwen2.5-VL-7B + Qwen2.5-72B-AWQ, vLLM
+
+**Desktop:** Tauri 2.x, Rust, WebKitGTK (Linux)
 
 ---
 
-## Stack Tecnológica
-
-### Frontend
-- **Framework:** React 19 + TypeScript 5.8
-- **Build:** Vite 6.2
-- **Estilo:** Tailwind CSS (via CDN)
-- **UI Components:** Radix UI (dialog, dropdown, select, slider, switch)
-- **Animações:** Framer Motion
-- **Ícones:** Lucide React
-
-### Backend (Modal.com)
-- **Runtime:** Python 3.11 serverless
-- **GPU:** NVIDIA A100
-- **Modelos:**
-  - Vision: `Qwen/Qwen2.5-VL-7B-Instruct`
-  - Text: `Qwen/Qwen2.5-72B-Instruct-AWQ`
-- **Inference:** vLLM
-
----
-
-## Estrutura do Projeto
+## Estrutura
 
 ```
 src/
-├── components/           # Componentes React
-│   ├── ui/              # Primitivos UI (HeatSlider, NeuralLattice, SomaticLoader)
-│   ├── App.tsx          # Shell principal com state management
-│   ├── AuthGate.tsx     # Gate de login (hardcoded)
-│   ├── MemoryViewer.tsx # Experiência core: SETUP->PROCESSING->REVEAL
-│   ├── MosaicCreator.tsx # Gerador de mosaico com progress
-│   ├── PhotoUploader.tsx # Upload + Google Drive/Photos
-│   ├── ConfigPanel.tsx  # Settings (tema, params AI)
-│   └── Navigation.tsx   # Header com dropdown
-├── context/
-│   └── ThemeContext.tsx # Provider de tema (HOT/WARM) + settings AI
-├── services/
-│   └── api.ts           # Cliente API para Modal.com
-├── utils/
-│   ├── googleIntegration.ts # Google Picker + OAuth
-│   └── mosaic.ts        # Algoritmo de geração de mosaico
-├── types.ts             # Interfaces TypeScript
-├── constants.ts         # ROMANTIC_QUESTIONS array
-└── index.tsx            # Root mount com error boundary
+├── components/          # React components
+├── context/             # ThemeContext (HOT/WARM modes)
+├── services/            # api.ts, ollama.ts, gameMasterChat.ts
+├── utils/               # googleIntegration.ts, mosaic.ts
+└── index.tsx
+
+src-tauri/
+├── src/lib.rs           # Tauri commands
+└── tauri.conf.json      # Config + CSP + plugins
 
 backend/
-└── backend.py           # Backend Modal.com (FastAPI + vLLM)
-
-agents/                  # Specs de agentes MCP/ADK
-docs/                    # Documentação operacional
+└── backend.py           # Modal.com FastAPI + vLLM
 ```
+
+---
+
+## CI/CD via Tailscale
+
+VM Oracle builda, Tailscale transfere para máquina local.
+
+| Item | Valor |
+|------|-------|
+| Target | `cmr-auto@100.102.249.9` |
+| Destino | `/home/cmr-auto/Desktop/hotcocoa` |
+
+```bash
+# Deploy release
+./deploy-local.sh
+
+# Deploy debug (para testes)
+npm run build && cargo build
+scp src-tauri/target/debug/hotcocoa cmr-auto@100.102.249.9:/home/cmr-auto/Desktop/hotcocoa-debug
+```
+
+**Regra:** SEMPRE usar Tailscale para deploy. A VM tem ambiente configurado.
 
 ---
 
 ## Padrões de Código
 
-### TypeScript/React
-- **Sem `any`** - Tipagem estrita obrigatória
-- **Functional components** com hooks
-- **Tailwind-first** - Classes utilitárias, sem CSS custom
-- **Async/await** com try/catch e fallbacks
-- **Service layer** para chamadas API
-
-### Convenções de Nomenclatura
-- Componentes: `PascalCase` (ex: `MemoryViewer.tsx`)
-- Utilitários: `camelCase` (ex: `googleIntegration.ts`)
-- Tipos/Interfaces: `PascalCase` (ex: `IntimacyResponse`)
-- Constantes: `UPPER_SNAKE_CASE` (ex: `ROMANTIC_QUESTIONS`)
-
-### Git
-- Conventional commits: `feat:`, `fix:`, `chore:`, `refactor:`
-- Branch principal: `main`
-- Feature branches: `feat/*`
+- **TypeScript:** Sem `any`, tipagem estrita
+- **React:** Functional components, hooks, Tailwind-first
+- **Git:** Conventional commits (`feat:`, `fix:`, `chore:`), branch `main`, features em `feat/*`
+- **Nomenclatura:** Componentes `PascalCase`, utils `camelCase`, constantes `UPPER_SNAKE_CASE`
 
 ---
 
-## Arquivos Críticos
-
-| Arquivo | Propósito |
-|---------|-----------|
-| `src/App.tsx` | State machine principal (UPLOAD->VIEWING->MOSAIC) |
-| `src/components/MemoryViewer.tsx` | Lógica core da experiência |
-| `src/context/ThemeContext.tsx` | Tema + configurações AI |
-| `src/services/api.ts` | Integração com backend |
-| `src/utils/mosaic.ts` | Algoritmo de geração de mosaico |
-| `backend/backend.py` | Pipeline de inferência |
-| `vite.config.ts` | Build config + env shims |
-| `index.html` | Entry point + Tailwind CDN |
-
----
-
-## Sistema de Temas
-
-Dois modos disponíveis via `ThemeContext`:
-
-- **HOT Mode:** Rose-600 primary, orange-600 accent (tom mais explícito)
-- **WARM Mode:** Pink-600 primary, amber-500 accent (tom emocional/profundo)
-
-CSS variables injetadas em runtime: `--color-primary`, `--color-bg`, `--color-accent`
-
----
-
-## Autenticação
-
-**Temporária/Hardcoded:**
-- Usuário: `CMR`
-- Senha: `Chicago00@`
-- Token armazenado em `localStorage` como `io_auth_token`
-
----
-
-## Endpoints Backend (Modal.com)
+## Autenticação (Temporária)
 
 ```
-# Processamento de sessão
-POST https://pedrogiudice--picture-composer-backend-a100-process-intimacy-request.modal.run
+Usuário: CMR
+Senha: Chicago00@
+Token: localStorage["io_auth_token"]
+```
 
-# Análise de mosaico
-POST https://pedrogiudice--picture-composer-backend-a100-process-mosaic-request.modal.run
+---
+
+## Endpoints Backend
+
+```
+POST https://pedrogiudice--picture-composer-backend-a100-process-inti-cc48af.modal.run  # Sessão
+POST https://pedrogiudice--picture-composer-backend-a100-process-mosa-f668fe.modal.run  # Mosaico
+POST https://pedrogiudice--picture-composer-backend-a100-chat-with-ga-a943d1.modal.run  # Chat
 ```
 
 ---
@@ -259,189 +153,59 @@ POST https://pedrogiudice--picture-composer-backend-a100-process-mosaic-request.
 ## Variáveis de Ambiente
 
 ```env
-VITE_MODAL_BACKEND_URL=    # URL do endpoint de sessão
-VITE_MODAL_MOSAIC_URL=     # URL do endpoint de mosaico
-GEMINI_API_KEY=            # (legacy, não usado atualmente)
-```
-
-Google credentials são armazenadas em `localStorage` (não seguro para produção).
-
----
-
-## Dívidas Técnicas Conhecidas
-
-1. **Tailwind via CDN** - Deveria ser build PostCSS
-2. **Environment shimming** - `process.env` shimado no vite.config.ts
-3. **Credenciais hardcoded** - AuthGate.tsx precisa de auth real
-4. **Google creds em localStorage** - Inseguro para produção
-5. **Sem testes** - Precisa setup de Jest/Cypress/PyTest
-6. **Mock fallbacks** - Backend às vezes retorna mocks
-
----
-
-## AI Pipeline
-
-O backend usa dois modelos em sequencia:
-
-1. **VisionEngine** (Qwen2.5-VL-7B): Analise objetiva da cena
-2. **GameMasterEngine** (Qwen2.5-72B-AWQ): Geracao de desafios de intimidade
-
-O sistema ajusta intensidade pelo "heat level" (1-10) e responde em Portugues Brasileiro.
-
-Ver: `backend/backend.py`
-
----
-
-## Algoritmo de Mosaico
-
-- Tiles de 30x30px
-- Análise de cor média por tile
-- Match por distância de cor + penalidade de uso
-- Randomização entre top-3 candidatos
-- Output máximo: 2000px largura
-
-Ver: `src/utils/mosaic.ts`
-
----
-
-## Docker
-
-```bash
-# Desenvolvimento
-docker-compose up
-
-# O container monta volumes e roda npm dev
+VITE_OLLAMA_URL=http://64.181.162.38/api/ollama
+VITE_OLLAMA_USER=
+VITE_OLLAMA_PASS=
+VITE_MODAL_BACKEND_URL=
+VITE_MODAL_MOSAIC_URL=
 ```
 
 ---
 
-## CI/CD via Tailscale
+## Dívidas Técnicas
 
-O projeto usa Tailscale para deploy contínuo da VM Oracle para a máquina local do usuário.
-
-### Configuração
-
-| Item | Valor |
-|------|-------|
-| VM (build server) | Oracle Cloud - `100.x.x.x` (Tailscale) |
-| Target (desktop) | `cmr-auto@100.102.249.9` |
-| Destino binário | `/home/cmr-auto/Desktop/hotcocoa` |
-
-### Deploy Padrão
-
-```bash
-# Deploy release (produção)
-./deploy-local.sh
-
-# Ou manualmente:
-npm run build
-cargo build --release
-scp src-tauri/target/release/hotcocoa cmr-auto@100.102.249.9:/home/cmr-auto/Desktop/hotcocoa
-```
-
-### Deploy Debug (para testes)
-
-```bash
-# Build debug com símbolos e logs
-npm run build
-cargo build  # ou cargo tauri build --debug
-
-# Deploy do binário debug
-scp src-tauri/target/debug/hotcocoa cmr-auto@100.102.249.9:/home/cmr-auto/Desktop/hotcocoa-debug
-```
-
-### Quando Usar
-
-- **Após mudanças significativas**: Deploy automático para teste imediato
-- **Debug de issues**: Enviar build debug com instrumentação
-- **Não é possível testar na VM**: A VM não tem display gráfico, então o app Tauri precisa rodar na máquina local
-
-### Regra Importante
-
-**SEMPRE** usar Tailscale para deploy em vez de pedir ao usuário para buildar localmente. A VM tem o ambiente configurado corretamente.
-
----
-
-## Debugging
-
-Técnica dos 5 Porquês para bugs não-triviais:
-1. Sintoma -> 2. Por quê? -> 3. Por quê? -> 4. Por quê? -> 5. **CAUSA RAIZ**
-
----
-
-## Hooks
-
-Validar após mudanças:
-```bash
-tail -50 ~/.vibe-log/hooks.log
-```
-Red flags: `MODULE_NOT_FOUND`, `command not found`
-
----
-
-## Subagentes Discovery
-
-Subagentes de `.claude/agents/*.md` descobertos no início da sessão.
-Novo subagente? Reinicie a sessão.
+1. Tailwind via CDN (deveria ser PostCSS)
+2. Credenciais hardcoded em AuthGate.tsx
+3. Google creds em localStorage (inseguro)
+4. Sem testes automatizados
 
 ---
 
 ## ADK Agents (Gemini)
 
-Agentes autônomos que usam google-genai para executar tarefas de desenvolvimento.
-
-### Iniciar/Parar
-
 ```bash
-./adk-agents/start-all.sh start    # Inicia todos
-./adk-agents/start-all.sh stop     # Para todos
-./adk-agents/start-all.sh status   # Verifica status
+./adk-agents/start-all.sh start    # Inicia
+./adk-agents/start-all.sh stop     # Para
+./adk-agents/start-all.sh frontend "tarefa"  # Envia tarefa
 ```
 
-### Enviar Tarefas
+| Porta | Agente | Uso |
+|-------|--------|-----|
+| 8002 | gemini-cli | Context offloading |
+| 8003 | tauri-frontend | Frontend Tauri/React |
+| 8004 | tauri-backend | Backend Rust |
+| 8005 | frontend | Frontend geral |
 
-```bash
-./adk-agents/start-all.sh frontend "Crie um componente Button"
-./adk-agents/start-all.sh task 8005 "Liste arquivos tsx" src/
-```
+---
 
-### Portas e Agentes
+## Debugging
 
-| Porta | Agente | Modelo | Uso |
-|-------|--------|--------|-----|
-| 8002 | gemini-cli | CLI subprocess | Context offloading |
-| 8003 | tauri-frontend | gemini-2.5-pro | Frontend Tauri/React |
-| 8004 | tauri-backend | gemini-2.5-pro | Backend Rust/Tauri |
-| 8005 | frontend | gemini-2.5-pro | Frontend geral |
+Técnica dos 5 Porquês: Sintoma -> Por quê? -> Por quê? -> Por quê? -> **CAUSA RAIZ**
 
-### Configuração
-
-Arquivo: `adk-agents/.env`
-```env
-GOOGLE_API_KEY=sua-key
-GEMINI_MODEL=gemini-2.5-pro
-```
-
-### Quando Usar
-
-- **Tarefas paralelas**: Delegar trabalho enquanto Claude faz outra coisa
-- **Context offloading**: Arquivos grandes (>500 linhas)
-- **Code review**: Revisão estática de código Tauri/React
+Validar hooks: `tail -50 ~/.vibe-log/hooks.log`
 
 ---
 
 ## Team
 
-- **PGR** = Pedro (dono do projeto)
+**PGR** = Pedro (dono do projeto)
 
 ---
 
-## Notas para Desenvolvimento
+## Notas
 
-1. **Sempre ler arquivos antes de editar** - Entenda o contexto existente
-2. **Respeitar tipagem** - Sem `any`, interfaces completas
-3. **Manter consistência** - Seguir padrões já estabelecidos
-4. **Testar localmente** - `npm run dev` antes de commits
-5. **Commits atômicos** - Uma mudança lógica por commit
-6. **Português na UI** - Inglês apenas em código/comentários técnicos
-7. **Commitar frequentemente** - Evita perda de trabalho em crashes
+1. Sempre ler arquivos antes de editar
+2. Respeitar tipagem - sem `any`
+3. Testar: `npm run dev` antes de commits
+4. Português na UI, inglês em código
+5. Commitar frequentemente
