@@ -51,28 +51,54 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* WARM MODE Theme (from Figma) */
-[data-theme="warm"] {
-  --hotcocoa-bg: #2d1810;
-  --hotcocoa-card-bg: #2d181099;
-  --hotcocoa-header-bg: #2d1810;
-  --hotcocoa-text-primary: #f5f5f5;
-  --hotcocoa-text-secondary: #a89080;
-  --hotcocoa-accent: #d4a574;
-  --hotcocoa-accent-hover: #e0b585;
-  --hotcocoa-border: rgba(212, 165, 116, 0.3);
-}
-
-/* HOT MODE Theme (from Figma) */
+/* HOT MODE Theme (from Figma) - Dark red/black */
 [data-theme="hot"] {
+  --background: #1a0a0a;
+  --foreground: #ffffff;
+  --card: #140a0a;
+  --card-foreground: #ffffff;
+  --popover: #1a0a0a;
+  --popover-foreground: #ffffff;
+  --primary: #ff6b6b;
+  --primary-foreground: #1a0a0a;
+  --secondary: #2a1515;
+  --secondary-foreground: #ffffff;
+  --muted: #2a1515;
+  --muted-foreground: #b89090;
+  --accent: #ff6b6b;
+  --accent-foreground: #1a0a0a;
+  --border: rgba(255, 107, 107, 0.2);
+  --input: #2a1515;
+  --ring: #ff6b6b;
+  /* Legacy vars */
   --hotcocoa-bg: #1a0a0a;
   --hotcocoa-card-bg: #140a0a99;
-  --hotcocoa-header-bg: #1a0a0a;
-  --hotcocoa-text-primary: #fff;
-  --hotcocoa-text-secondary: #b89090;
   --hotcocoa-accent: #ff6b6b;
-  --hotcocoa-accent-hover: #ff8585;
-  --hotcocoa-border: rgba(255, 107, 107, 0.2);
+}
+
+/* WARM MODE Theme (from Figma) - Dark brown/orange */
+[data-theme="warm"] {
+  --background: #2d1810;
+  --foreground: #f5f5f5;
+  --card: #251410;
+  --card-foreground: #f5f5f5;
+  --popover: #2d1810;
+  --popover-foreground: #f5f5f5;
+  --primary: #d4a574;
+  --primary-foreground: #2d1810;
+  --secondary: #3d2820;
+  --secondary-foreground: #f5f5f5;
+  --muted: #3d2820;
+  --muted-foreground: #a89080;
+  --accent: #d4a574;
+  --accent-foreground: #2d1810;
+  --border: rgba(212, 165, 116, 0.3);
+  --input: #3d2820;
+  --ring: #d4a574;
+  /* Legacy vars */
+  --hotcocoa-bg: #2d1810;
+  --hotcocoa-card-bg: #2d181099;
+  --hotcocoa-accent: #d4a574;
 }
 
 .dark {
