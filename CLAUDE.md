@@ -315,6 +315,53 @@ docker-compose up
 
 ---
 
+## CI/CD via Tailscale
+
+O projeto usa Tailscale para deploy contínuo da VM Oracle para a máquina local do usuário.
+
+### Configuração
+
+| Item | Valor |
+|------|-------|
+| VM (build server) | Oracle Cloud - `100.x.x.x` (Tailscale) |
+| Target (desktop) | `cmr-auto@100.102.249.9` |
+| Destino binário | `/home/cmr-auto/Desktop/hotcocoa` |
+
+### Deploy Padrão
+
+```bash
+# Deploy release (produção)
+./deploy-local.sh
+
+# Ou manualmente:
+npm run build
+cargo build --release
+scp src-tauri/target/release/hotcocoa cmr-auto@100.102.249.9:/home/cmr-auto/Desktop/hotcocoa
+```
+
+### Deploy Debug (para testes)
+
+```bash
+# Build debug com símbolos e logs
+npm run build
+cargo build  # ou cargo tauri build --debug
+
+# Deploy do binário debug
+scp src-tauri/target/debug/hotcocoa cmr-auto@100.102.249.9:/home/cmr-auto/Desktop/hotcocoa-debug
+```
+
+### Quando Usar
+
+- **Após mudanças significativas**: Deploy automático para teste imediato
+- **Debug de issues**: Enviar build debug com instrumentação
+- **Não é possível testar na VM**: A VM não tem display gráfico, então o app Tauri precisa rodar na máquina local
+
+### Regra Importante
+
+**SEMPRE** usar Tailscale para deploy em vez de pedir ao usuário para buildar localmente. A VM tem o ambiente configurado corretamente.
+
+---
+
 ## Debugging
 
 Técnica dos 5 Porquês para bugs não-triviais:
