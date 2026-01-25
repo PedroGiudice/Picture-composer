@@ -1134,6 +1134,26 @@
           "(ver|monitorar).*?(enquanto|durante).*?(trabalh|desenvolv)"
         ]
       }
+    },
+    "hotcocoa-deploy": {
+      "type": "development",
+      "enforcement": "suggest",
+      "priority": "high",
+      "description": "Build e deploy HotCocoa para desktop Linux via Tailscale",
+      "promptTriggers": {
+        "keywords": [
+          "deploy hotcocoa",
+          "build deb",
+          "deploy tauri",
+          "manda pra maquina",
+          "atualiza app"
+        ],
+        "intentPatterns": [
+          "(build|deploy).*?(hotcocoa|tauri|deb)",
+          "(manda|envia).*?(maquina|desktop|local)",
+          "(atualiza|update).*?(app|hotcocoa)"
+        ]
+      }
     }
   },
   "_metadata": {
