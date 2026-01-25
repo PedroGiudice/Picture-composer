@@ -6,16 +6,49 @@ import { ConfigModal } from "@/components/ConfigModal";
 import { SystemPromptModal } from "@/components/SystemPromptModal";
 import { PromptSelectorModal } from "@/components/PromptSelectorModal";
 import { PromptCreatorChat } from "@/components/PromptCreatorChat";
-import { DemoControls } from "@/components/DemoControls";
 import { ThemeProvider } from "@/context/ThemeContext";
 import { ThemeIndicator } from "@/components/ThemeIndicator";
 import { check } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
 
+// MUI Icons
+import CameraAltRounded from "@mui/icons-material/CameraAltRounded";
+import PersonRounded from "@mui/icons-material/PersonRounded";
+import TuneRounded from "@mui/icons-material/TuneRounded";
+
 // Version from package.json (injected by Vite)
 const APP_VERSION = __APP_VERSION__ || "0.1.0";
 
 type Screen = "home" | "chat";
+
+/**
+ * Represents a button in the bottom navigation bar.
+ */
+interface NavButtonProps {
+  /** Icon component to display */
+  Icon: React.ElementType;
+  /** Text label for the button */
+  label: string;
+  /** Function to execute on click */
+  onClick: () => void;
+  /** Whether the button is currently active */
+  isActive?: boolean;
+}
+
+const NavButton = ({ Icon, label, onClick, isActive = false }: NavButtonProps) => (
+  <button
+    onClick={onClick}
+    className={`flex flex-col items-center justify-center w-full pt-2 pb-1 transition-colors duration-200 ${
+      isActive
+        ? 'text-[var(--hotcocoa-accent)]'
+        : 'text-[var(--hotcocoa-text-secondary)] hover:text-[var(--hotcocoa-text-primary)]'
+    }`}
+  >
+    <Icon sx={{ fontSize: 26 }} />
+    <span className="text-xs mt-1">{label}</span>
+  </button>
+);
+
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>("home");
@@ -34,18 +67,10 @@ export default function App() {
         const update = await check();
         if (update) {
           setUpdateStatus("available");
-          console.log(`Update available: ${update.version}`);
-
           // Auto-download
           setUpdateStatus("downloading");
-          await update.downloadAndInstall((event) => {
-            if (event.event === "Progress") {
-              const progress = (event.data.chunkLength / event.data.contentLength) * 100;
-              console.log(`Download progress: ${progress.toFixed(1)}%`);
-            }
-          });
+          await update.downloadAndInstall();
           setUpdateStatus("ready");
-
           // Prompt user to restart
           if (confirm(`Nova versao ${update.version} instalada! Reiniciar agora?`)) {
             await relaunch();
@@ -59,18 +84,15 @@ export default function App() {
       }
     };
 
-    // Check after 3 seconds to not block startup
     const timer = setTimeout(checkForUpdates, 3000);
     return () => clearTimeout(timer);
   }, []);
 
   const handleDeviceUpload = () => {
-    // TODO: Implementar upload real via file picker
     console.log("Device upload clicked");
   };
 
   const handleGoogleDriveUpload = () => {
-    // TODO: Implementar integracao real com Google Drive
     console.log("Google Drive upload clicked");
   };
 
@@ -81,7 +103,7 @@ export default function App() {
         style={{
           backgroundColor: 'var(--hotcocoa-bg)',
           paddingTop: 'env(safe-area-inset-top)',
-          paddingBottom: 'env(safe-area-inset-bottom)'
+          // The bottom padding will be handled by the bottom nav's height
         }}
       >
         {/* Fixed Header */}
@@ -91,10 +113,9 @@ export default function App() {
           showBackButton={currentScreen === "chat"}
         />
 
-        {/* Main Content - starts below header (48px + safe-area + margin) */}
-        {/* Desktop: centered with max-width | Mobile: full width */}
+        {/* Main Content */}
         <main
-          className="flex-1 flex flex-col min-h-0 mx-auto w-full max-w-6xl"
+          className="flex-1 flex flex-col min-h-0 mx-auto w-full max-w-6xl pb-24" // Added padding-bottom
           style={{ marginTop: 'calc(48px + max(env(safe-area-inset-top, 0px), 24px) + 8px)' }}
         >
           {currentScreen === "home" && (
@@ -107,37 +128,43 @@ export default function App() {
           {currentScreen === "chat" && <ChatScreen />}
         </main>
 
-        {/* Footer Version */}
-        <footer
-          className="py-2 text-center"
-          style={{ backgroundColor: 'var(--hotcocoa-bg)' }}
-        >
-          <span
-            className="text-xs opacity-40"
-            style={{ color: 'var(--hotcocoa-text-secondary)' }}
-          >
-            v{APP_VERSION}
-            {updateStatus === "checking" && " (verificando...)"}
-            {updateStatus === "downloading" && " (baixando update...)"}
-            {updateStatus === "ready" && " (reinicie para atualizar)"}
-          </span>
-        </footer>
 
-        {/* Configuration Modal */}
+        {/* Bottom Navigation */}
+        <nav
+          className="fixed bottom-0 left-0 right-0 h-16 border-t"
+          style={{
+            backgroundColor: 'var(--hotcocoa-bg-secondary)',
+            borderColor: 'var(--hotcocoa-border)',
+            paddingBottom: 'env(safe-area-inset-bottom)'
+          }}
+        >
+          <div className="flex justify-around items-start h-full max-w-6xl mx-auto">
+            <NavButton
+              Icon={CameraAltRounded}
+              label="Studio"
+              onClick={() => setCurrentScreen("home")}
+              isActive={currentScreen === 'home' || currentScreen === 'chat'}
+            />
+            <NavButton
+              Icon={PersonRounded}
+              label="Persona"
+              onClick={() => setIsPromptSelectorOpen(true)}
+            />
+            <NavButton
+              Icon={TuneRounded}
+              label="Config"
+              onClick={() => setIsConfigOpen(true)}
+            />
+          </div>
+        </nav>
+
+
+        {/* MODALS */}
         <ConfigModal
           isOpen={isConfigOpen}
           onClose={() => setIsConfigOpen(false)}
         />
 
-        {/* Navigation Controls */}
-        <DemoControls
-          currentScreen={currentScreen}
-          onScreenChange={setCurrentScreen}
-          onConfigOpen={() => setIsConfigOpen(true)}
-          onSystemPromptOpen={() => setIsPromptSelectorOpen(true)}
-        />
-
-        {/* System Prompt Modal (Advanced Editor) */}
         <SystemPromptModal
           isOpen={isSystemPromptOpen}
           onClose={() => {
@@ -147,7 +174,6 @@ export default function App() {
           initialPrompt={initialSystemPrompt}
         />
 
-        {/* Prompt Selector Modal */}
         <PromptSelectorModal
           isOpen={isPromptSelectorOpen}
           onClose={() => setIsPromptSelectorOpen(false)}
@@ -162,7 +188,6 @@ export default function App() {
           }}
         />
 
-        {/* Prompt Creator Chat */}
         <PromptCreatorChat
           isOpen={isPromptCreatorOpen}
           onClose={() => setIsPromptCreatorOpen(false)}
@@ -172,7 +197,7 @@ export default function App() {
           }}
         />
 
-        {/* Theme Change Indicator */}
+        {/* Global Indicators */}
         <ThemeIndicator />
       </div>
     </ThemeProvider>
